@@ -1,0 +1,58 @@
+import(utils)
+import(methods)
+import(BiocGenerics)
+import(ProtGenerics)
+import(MSnbase)
+import(S4Vectors)
+## Just import all from xcms
+import(xcms)
+importClassesFrom(xcms)
+importMethodsFrom(xcms)
+##importClassesFrom(graph, graphNEL)
+##importFrom(graph, graphNEL)
+## importMethodsFrom(graph, leaves, isConnected, edges, nodes, isDirected,
+##                   removeNode)
+## importFrom(DBI, dbDriver)
+## importClassesFrom(AnnotationHub, AnnotationHub)
+## importMethodsFrom(AnnotationHub, query, mcols)
+
+## xcmsRaw methods:
+exportMethods("scantimes", "getData", "msMap")
+
+## MSdata methods:
+exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
+              "rtrange", "mzrange", "intrange")
+
+## MSsliceList methods:
+exportMethods("slices", "slices<-")
+
+## Classes
+exportClasses("MSdata", "MSslice", "MSsliceList")
+
+## Generic methods
+exportMethods("show", "msSlice", "msData", "as.matrix", "length")
+
+## Constructors
+export("MSdata", "MSslice", "MSsliceList")
+
+## ## Export functions
+## export("Props")
+## Export classes
+## exportClasses("Rule", "RuleSet", "RuleSets")
+## ## Export constructors
+## export("Rule", "readRule", "RuleSet", "readRuleSet", "RuleSets", "readRuleSets")
+## ## Export methods for Rule
+## exportMethods("columns", "columns<-", "type", "values", "values<-", "condition",
+##               "condition<-", "match", "name", "name<-", "export", "description",
+##               "description<-")
+## ## Export methods for RuleSet
+## exportMethods("logOp", "logOp<-", "rules", "rules<-")
+## ## Export methods for RuleSets
+## exportMethods("sets", "sets<-")
+
+## ## Export CHRIS functions.
+## export(chrisSanitizeTable)
+## exportMethods(subsetBy)
+
+## ## Other methods
+## exportMethods(season)

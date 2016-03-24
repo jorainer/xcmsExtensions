@@ -1,0 +1,17 @@
+Package: xcmsExtensions
+Type: Package
+Title: Extensions to the xcms package
+Version: 0.0.1
+Author: J. Rainer
+Maintainer: Johannes Rainer <johannes.rainer@eurac.edu>
+Imports: BiocGenerics, utils, ProtGenerics, S4Vectors
+Depends: methods, xcms (>= 1.47.2), MSnbase
+Suggests: BiocStyle, knitr, RUnit, rmarkdown
+VignetteBuilder: knitr
+Description: Collection of methods and functions extending the functionality of
+	     the xcms Bioconductor package.
+Collate: XGenerics.R XClasses.R XConstructors.R Xutils.R XxcmsRaw-Methods.R XxcmsSet-Methods.R
+	 XMSdata-Methods.R XMSslice-Methods.R XMSsliceList-Methods.R
+biocViews: MassSpectrometry, Metabolomics
+License: MIT + file LICENSE
+NeedsCompilation: no

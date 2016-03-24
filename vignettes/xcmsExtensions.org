@@ -1,0 +1,287 @@
+#+TITLE: Extensions to the xcms package
+#+AUTHOR:    Johannes Rainer
+#+EMAIL:     johannes.rainer@eurac.edu
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS: ^:{} toc:nil
+#+PROPERTY: exports code
+#+PROPERTY: session *R*
+
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+
+#+BEGIN_HTML
+---
+title: "Extensions to the xcms package"
+graphics: yes
+output:
+  BiocStyle::html_document:
+    toc_depth: 2
+  BiocStyle::pdf_document:
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Extensions to the xcms package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{xcmsExtensions,xcms,faahKO}
+  %\VignettePackage{xcmsExtensions}
+  %\VignetteKeywords{Genetics}
+bibliography: references.bib
+csl: biomed-central.csl
+references:
+- id: dummy
+  title: no title
+  author:
+  - family: noname
+    given: noname
+---
+
+**Package**: `r Biocpkg("FamAgg")`<br />
+**Authors**: `r packageDescription("FamAgg")$Author`<br />
+**Modified**: 22 December, 2015<br />
+**Compiled**: `r date()`
+
+#+END_HTML
+
+# #+BEGIN_SRC R :ravel echo=FALSE, results='asis', message=FALSE
+#   BiocStyle::markdown()
+# #+END_SRC
+
+* How to export this to a =Rmd= vignette			   :noexport:
+
+Use =ox-ravel= to export this file as an R markdown file (=C-c C-e m r=). That
+way we don't need to edit the resulting =Rmd= file.
+
+* How to export this to a =Rnw= vignette 			   :noexport:
+
+*Note*: this is deprecated! Use the =Rmd= export instead!
+
+Use =ox-ravel= from the =orgmode-accessories= package to export this file to a
+=Rnw= file. After export edit the generated =Rnw= in the following way:
+
+1) Delete all =\usepackage= commands.
+2) Move the =<<style>>= code chunk before the =\begin{document}= and before
+   =\author=.
+3) Move all =%\Vignette...= lines at the start of the file (even before
+   =\documentclass=).
+4) Replace =\date= with =\date{Modified: 21 October, 2013. Compiled: \today}=
+5) Eventually search for all problems with =texttt=, i.e. search for pattern
+   ="==.
+
+Note: use =:ravel= followed by the properties for the code chunk headers,
+e.g. =:ravel results='hide'=. Other options for knitr style options are:
++ =results=: ='hide'= (hides all output, not warnings or messages), ='asis'=,
+  ='markup'= (the default).
++ =warning=: =TRUE= or =FALSE= whether warnings should be displayed.
++ =message=: =TRUE= or =FALSE=, same as above.
++ =include=: =TRUE= or =FALSE=, whether the output should be included into the
+  final document (code is still evaluated).
+
+* Working with =svn= and =git=					   :noexport:
+
+First check out the svn repo using git:
+
+=git svn clone svn+ssh://svn@source.gm.eurac.edu/chrisUtils --stdlayout=.
+
+Pull the existing =git= repository to this /new/ repo: from within the folder call
+
+=git pull ~/Projects/git/chrisUtils=
+
+Eventually rebasing it again (shouldn't do anything actually).
+
+=git svn rebase=
+
+Commiting (if there is anything to commit) and push it to svn:
+
+=git svn dcommit=.
+
+Now, if we want to create a tag (say we have done a release).
+
+=git svn tag=.
+
+
+Based on
+http://stackoverflow.com/questions/22527867/adding-svn-remote-to-existing-git-repo.
+
+
+
+* Introduction
+
+This package provides some functions and utilities extending the functionality
+of the =xcms= Bioconductor package. These functions aim to provide a better
+integration into the Bioconductor framework (following their coding- and
+function-naming conventions).
+
+
+* New objects introduced by =xcmsExtensions=
+
+To enable a more streamlined and user-friendly access to MS data, the
+=xcmsExtensions= package defines the following objects. Some of these are
+redundant in their data content with comparable objects in =xcms=, but these, in
+most cases, do not provide all the data or have other limitations.
+
++ =MSdata=: this is the basic object holding retention time (rt), m/z and
+  measured intensities for the rt-mz tuples. The retention time is internally
+  stored as an =Rle= object, the mz values as =numeric= and the intensities as
+  =integer= enabling a lower memory footprint. By design this object is thought
+  to hold only MS data for a subset of a whole MS run, but in principle, it
+  could also store all the detected intensities for all m/z and retention/scan
+  times in which case this object is somewhat redundant with the =xcmsRaw=
+  object. Extracting paired and matched rt, mz and intensity values from an
+  =MSdata= object is however easier.
+
++ =MSslice=: represents in principle just a /wrapper/ object for multiple
+  =MSdata= objects, all defining the same area (slice) in the m/z rt space, but
+  across several samples.
+
++ =MSsliceList=: a list of several =MSslice= object. If e.g. different slices
+  defined by different mz/rt ranges from a single sample (e.g. from a single
+  =xcmsRaw= object), these will be stored and returned in a =MSsliceList=.
+
+* Accessing data in =xcmsRaw= objects
+
+Loading the libraries and the =xcmsRaw= object.
+
+#+BEGIN_SRC R :ravel results='silent', message=FALSE
+  library(xcmsExtensions)
+  library(faahKO)
+  xset <- faahko
+  ## Getting the raw data for the first data file.
+  xraw <- getXcmsRaw(xset)
+#+END_SRC
+
+The raw data of an LC/GC-MS run is stored in an =xcmsRaw= object, more
+specifically, in the slots =@scantime=, =@env$mz=, =@env$intensity=. Extracting
+data from such a =xcmsRaw= object can however be somewhat cumbersome, especially
+when we want to extract only (eventually multiple) sub-sets of data. Also, for
+memory reasons, the length of the =@scantome= slot does not match the length of
+the =@env$mz= slot as it stores only the distinct scan/measurement time points.
+We can however use the =scantimes= method to extract a numeric vector that
+matches the length of the =@env$mz= and =@env$intensity= slots, thus specifying
+the scan time for each of these data points.
+
+#+BEGIN_SRC R
+  ## What's the length of data points we have?
+  length(xraw@env$mz)
+  ## And the length of scan times?
+  length(xraw@scantime)
+
+  ## Extract the scan times matching the individual data points.
+  head(scantimes(xraw))
+  length(scantimes(xraw))
+#+END_SRC
+
+The data in an R-object should however not be accessed directly (i.e. accessing
+the slots), but ideally through an /getter/ methods. Thus, to extract the raw
+data from an =xcmsRaw= object we can use the =getData= method. We could also use
+the =rawMat= method defined in the =xcms= package, but the =getData= should be
+preferably used, as it is also faster and extracts always correct sub-sets if
+sub-setting is done on retention time ranges.
+
+#+BEGIN_SRC R
+  ## Get the full data from the object
+  dim(getData(xraw))
+  head(getData(xraw))
+
+  ## Extract only a subset of data specified by an retention time range.
+  datmat <- getData(xraw, rtrange=c(2509, 2530))
+  dim(datmat)
+
+  ## We can also specify both, a retention time and a mz range.
+  datmat <- getData(xraw, rtrange=c(2509, 2530), mzrange=c(301, 302.003))
+#+END_SRC
+
+Besides sub-setting by retention time and m/z ranges it is also possible to
+extract data sub-sets defined by an intensity range.
+
+#+BEGIN_SRC R
+  ## Use and intensity range: all with a signal higher than 300
+#+END_SRC
+
+And finally, we can also specify multiple retention time and or m/z (or
+intensity) ranges to extract multiple sub-sets.
+
+#+BEGIN_SRC R
+
+#+END_SRC
+
+Note that, if we load an =xcmsRaw= object for a =xcmsSet= object after having
+applied retention time correction, the retention times (scan time) we extract
+from that object will correspond to the corrected ones.
+
+#+BEGIN_SRC R
+  ## Grouping (alignment) of peaks/features
+  xset <- group(xset)
+  ## Retention time correction
+  xset <- retcor(xset)
+  ## Extract "raw" data; corrected retention times will be applied to the raw data.
+  xraw2 <- getXcmsRaw(xset)
+#+END_SRC
+
+Extracting data by directly accessing the slots of an R-object is however no
+
+
+* Standardization of names etc
+
+We base the naming convention of methods classes etc on the review from Smith et
+al. \cite{Smith:2014di} and will implement as many methods and classes as
+possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
+
++ *Definitions*
+  + *chromatogram*: intensity /vs/ (retention) time of the analytes.
+  + *(mass) spectrum*: intensity /vs/ m/z; all points with a single retention time
+    value (MS1, can be measured by MSMS again -> MS2).
+  + *total ion spectrum (TIS)*: sum of all ion counts (intensity) with one RT
+    (i.e. the sum of all spectra). Basically the sum of the signal per m/z over
+    all RT resulting in intensity /vs/ m/z (intensity /vs/ m/z).
+  + *total ion chromatogram (TIC)*: sum of all ion chromatograms, i.e. sum of ion
+    counts per RT over all m/z (intensity /vs/ RT).
+  + *extracted ion chromatogram (XIC)*: chromatogram (intensity /vs/ RT) for a
+    fixed m/z.
+  + *base peak chromatogram (BPC)*: most intense signal across m/z for each RT
+    (intensity /vs/ RT).
+  + *isotope trace*: signal produced by a single ion of a single analyte at a
+    particular charge state, fixed m/z (intensity /vs/ RT for a fixed m/z). Sort
+    of a peak in RT for a fixed m/z.
+  + *isotopic envelope trace* a.k.a. *feature*: group of isotopic traces of a
+    single analyte at a particular charge state (intensity /vs/ RT /vs/
+    m/z). Represents all intensities/peaks in a RT, m/z region.
+
++ =ProtGenerics=
+
++ =MSnbase=
+
+  - =MSmap= object.
+
+* TODOs								   :noexport:
+
+** TODO Implement =getXIC= methods.
+
++ [ ] =getXIC=: providing rtrange, mzrange, extract the ion chromatogram.
++ [ ] =getTIC=:
++ [ ] =getBPC=:
++ [ ] =getTIS=:
++ [ ] =getWhatever=: just extract everything from the 2-dimensional thing.
+
+** TODO Implement =calibrate= method.
+** TODO Stuff to work with the /HMDB/ xml files?
+** TODO =scantime= method for =xcmsRaw=.
+
+** TODO =MSslice= class
+
+The =MSslice= represents a part of the data defined by an =rtrange= and an
+=mzrange=. Would be nice to store that for one such range across several
+files. But this again requires that the times AND mz are synced.
+
++ [ ] Extract such an object using =slice= from an =xcmsSet= or =xcmsRaw=
+  object.
+
+** TODO =MSsliceList= class
+
+Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
+
+
+** TODO =xic=
+
+* References

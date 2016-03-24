@@ -1,0 +1,8 @@
+* Extensions to the =xcms= Bioconductor packages
+
+The =xcmsExtensions= package provides methods and functions extending the
+functionality of the xcms Bioconductor package. Ideally, some of them might be
+included into the =xcms= package in the long run. At present the package is
+however under heavy development and thus far from being complete or stable.
+
+For more information see [[file:vignettes/xcmsExtensions.org]].

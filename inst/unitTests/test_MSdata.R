@@ -79,3 +79,49 @@ test_msData <- function(){
     Test <- msData(xraw, rtrange=c(0, 1))
 }
 
+test_binning <- function(){
+    vals <- 1:2000
+    bins <- .getBins(vals, nbin=20)
+    ## expect to have 100 elements in each bin
+    Test <- split(vals, findInterval(vals, bins, all.inside=TRUE))
+    checkEquals(unique(unlist(lapply(Test, length), use.names=FALSE)), 100)
+    bins <- .getBins(vals, binSize=100)
+    ## expect to have 100 elements in each bin
+    Test <- split(vals, findInterval(vals, bins, all.inside=TRUE))
+    checkEquals(unique(unlist(lapply(Test, length), use.names=FALSE)), 100)
+
+    ##
+    checkTrue(all(findInterval(1:10, bins, all.inside=TRUE) == 1 ))
+
+    checkTrue(findInterval(c(2000), bins, all.inside=TRUE) == 20)
+    checkEquals(findInterval(c(300, 200, 1000), bins, all.inside=TRUE), c(3, 2, 10))
+
+    system.time(Test <- .aggregateWithBins(vals, bins=bins, FUN=mean))
+    checkEquals(Test, (50*seq(1, 40, by=2))+0.5)
+    checkEquals(Test, .binMeans(bins))
+
+    ## Check .binMeans.
+    checkEquals(.binMeans(c(2, 4, 6, 8, 10)), c(3, 5, 7, 9))
+}
+
+
+test_plot_chrom <- function(){
+    do.plot <- FALSE
+    ## Plotting a chromatogram: intensity (y) vs rt (x)
+    ## Use the peak from the example data.
+    mzr <- c(302, 302.1)
+    rtr <- c(2550, 2700)
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    if(do.plot)
+        plot(rtime(msd), intensity(msd), type="b")
+
+    ## Now doing a binning of the data.
+    bins <- .getBins(rtrange(msd), binSize=1)
+    ints <- findInterval(rtime(msd), bins, all.inside=TRUE)
+    aggs <- .aggregateWithIntervals(intensity(msd), ints)
+    midP <- .binMid(bins)
+
+    points(midP[unique(ints)], aggs, col="blue", type="b")
+    ## Plotting a spectrum: intensity (y) vs mz (x)
+}

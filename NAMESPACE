@@ -4,6 +4,7 @@ import(BiocGenerics)
 import(ProtGenerics)
 import(MSnbase)
 import(S4Vectors)
+import(BiocParallel)
 ## Just import all from xcms
 import(xcms)
 importClassesFrom(xcms)
@@ -24,7 +25,8 @@ exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
               "rtrange", "mzrange", "intrange")
 
 ## MSsliceList methods:
-exportMethods("slices", "slices<-")
+exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",
+              "[", "[[")
 
 ## Classes
 exportClasses("MSdata", "MSslice", "MSsliceList")

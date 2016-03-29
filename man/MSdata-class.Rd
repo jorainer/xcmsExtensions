@@ -3,15 +3,22 @@
 \docType{class}
 \alias{MSdata-class}
 \alias{MSdata}
+\alias{msData}
+\alias{as.matrix,}
+\alias{msData,xcmsRaw-method}
 \alias{show,MSdata-method}
 \alias{rtime<-}
 \alias{rtime<-,MSdata-method}
 \alias{rtime,MSdata-method}
+\alias{rtrange,MSdata-method}
 \alias{intensity<-}
 \alias{intensity<-,MSdata-method}
 \alias{intensity,MSdata-method}
+\alias{intrange}
+\alias{intrange,MSdata-method}
 \alias{mz<-,MSdata-method}
 \alias{mz,MSdata-method}
+\alias{mzrange,MSdata-method}
 
 
 \title{Simple MS data object}
@@ -23,23 +30,34 @@
 
 \section{Objects of the class}{
   \code{MSdata} objects are created by the constructor function
-  \code{MSdata}.
+  \code{MSdata}, or the \code{msData} method e.g. to extract data from
+  an \code{\link[xcms]{xcmsRaw}} object.
 }
 \usage{
+
+\S4method{as.matrix}{MSdata}(x, ...)
 
 \S4method{intensity}{MSdata}(object)
 
 \S4method{intensity}{MSdata}(object) <- value
 
+\S4method{intrange}{MSdata}(object)
+
 MSdata(mz, rtime, intensity, mslevel=1)
+
+\S4method{msData}{xcmsRaw}(object, mzrange=NULL, rtrange=NULL, ...)
 
 \S4method{mz}{MSdata}(object)
 
 \S4method{mz}{MSdata}(object) <- value
 
+\S4method{mzrange}{MSdata}(object)
+
 \S4method{rtime}{MSdata}(object, return.type="numeric")
 
 \S4method{rtime}{MSdata}(object) <- value
+
+\S4method{rtrange}{MSdata}(object)
 
 }
 \arguments{
@@ -52,6 +70,11 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
   \item{mz}{
     A numeric vector specifying the m/z values.
+  }
+
+  \item{mzrange}{
+    For \code{msData}: a numeric of length 2 specifying the range of m/z
+    values to be extracted from the object.
   }
 
   \item{object}{
@@ -68,10 +91,19 @@ MSdata(mz, rtime, intensity, mslevel=1)
     A numeric vector specifying the retention time values.
   }
 
+  \item{rtrange}{
+    For \code{msData}: a numeric of length 2 specifying the retention
+    time range to be extracted from the object.
+  }
+
   \item{value}{
     For \code{intensity<-}, \code{mz<-} and \code{rtime<-}, a numeric
     vector with the intensity, mz or retention time values,
     respectively.
+  }
+
+  \item{x}{
+    For \code{as.matrix}: a \code{MSdata} object.
   }
 
   \item{...}{
@@ -120,19 +152,45 @@ MSdata(mz, rtime, intensity, mslevel=1)
     \item{MSdata}{
       Constructor method to create a new \code{MSdata} instance.
     }
+
+    \item{msData}{
+      Extract MS data from an \code{\link[xcms]{xcmsRaw}} object and
+      return the values as a \code{MSdata} object. Arguments
+      \code{mzrange} and \code{rtrange} allow to define the data sub-set
+      to be extracted. If not specified, the method will extract the
+      full data.
+    }
   }
 }
 
-\section{Accessors}{
+\section{Accessing data of an \code{MSdata} object}{
   \describe{
 
-    \item{intensity, intensity<-}{
-      Get or set the intensity values of the \code{MSdata}
+    \item{as.matrix}{
+      Extracts a matrix with column names \code{"rtime"}, \code{"mz"} and
+      \code{"intensity"} with all data values of the \code{MSdata}
       object.
     }
 
+    \item{intensity, intensity<-}{
+      Get or set the intensity values of the \code{MSdata}
+      object. \code{intensity} returns the intensity values.
+    }
+
+    \item{intrange}{
+      Get the intensity value range. Returns a numeric vector of length
+      2. For an empty \code{MSdata} object without data points it
+      returns \code{c(NA, NA)}.
+    }
+
     \item{mz, mz<-}{
-      Get or set the mz values of the \code{MSdata} object.
+      Get or set the mz values of the \code{MSdata} object. \code{mz}
+      returns a numeric vector with the mz values.
+    }
+
+    \item{mzrange}{
+      Get the m/z value range of the \code{MSdata} object. Returns a
+      numeric vector of 2 or \code{c(NA, NA)} if the object is empty.
     }
 
     \item{rtime, rtime<-}{
@@ -141,6 +199,12 @@ MSdata(mz, rtime, intensity, mslevel=1)
       retention time is returned as a numeric vector or as an
       \code{\link[S4Vectors]{Rle}} object.
     }
+
+    \item{rtrange}{
+      Get the retention time range of the \code{MSdata} object. Returns a
+      numeric vector of 2 or \code{c(NA, NA)} if the object is empty.
+    }
+
   }
 }
 
@@ -152,10 +216,39 @@ MSdata(mz, rtime, intensity, mslevel=1)
   Johannes Rainer.
 }
 \seealso{
-  \code{\link[xcms]{xcmsRaw}}
+  \code{\link[xcms]{xcmsRaw}}, \code{\link{MSslice}}
 }
 \examples{
 
+## Load the faahKO package with the test data for the xcms package.
+library(faahKO)
+xset <- faahko
+
+## Get the raw data for the first sample.
+xraw <- getXcmsRaw(xset, 1)
+
+## Define a data sub-set and extract the corresponding values.
+rtr <- c(2600, 2670)
+mzr <- c(300, 400)
+mssub <- msData(xraw, rtrange=rtr, mzrange=mzr)
+
+## Get the mz value and retention time range
+mzrange(mssub)
+rtrange(mssub)
+
+## The actual retention time range is different from the specifyed
+## range as it depends on the acutally measured scan times.
+
+## Get the intensity range
+intrange(mssub)
+
+## Get mz values, retention times and intensities.
+head(mz(mssub))
+head(rtime(mssub))
+head(intensity(mssub))
+
+## Extract a matrix with the full data.
+head(as.matrix(mssub))
 
 }
 \keyword{classes}

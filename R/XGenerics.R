@@ -1,4 +1,4 @@
-setGeneric("closestGroup", function(x, mz=NULL, rt=NULL, ...)
+setGeneric("closestGroup", function(x, ...)
     standardGeneric("closestGroup"))
 
 setGeneric("getData", function(x, mzrange=NULL, rtrange=NULL, intrange=NULL, ...)
@@ -19,10 +19,17 @@ setGeneric("intrange", function(object, ...)
 setGeneric("msData", function(object, ...)
     standardGeneric("msData"))
 
-setGeneric("msSlice", function(object, mzrange=NULL, rtrange=NULL, ...)
+setGeneric("msSlice", function(object, ...)
     standardGeneric("msSlice"))
 
+## For MSsliceList
 setGeneric("slices", function(object, ...)
     standardGeneric("slices"))
 setGeneric("slices<-", function(object, value)
     standardGeneric("slices<-"))
+setGeneric("mzranges", function(object, ...)
+    standardGeneric("mzranges"))
+setGeneric("rtranges", function(object, ...)
+    standardGeneric("rtranges"))
+setGeneric("intranges", function(object, ...)
+    standardGeneric("intranges"))

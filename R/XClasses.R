@@ -1,4 +1,5 @@
 setClassUnion("MatrixOrNull", c("matrix", "NULL", "missing"))
+setClassUnion("MatrixOrNumericOrNull", c("matrix", "numeric", "NULL"))
 setClassUnion("NumericOrNull", c("numeric", "integer","NULL", "missing"))
 setClassUnion("NumericOrMissing", c("numeric", "integer","missing"))
 setClassUnion("LogicalOrMissing", c("logical","missing"))

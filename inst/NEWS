@@ -1,3 +1,10 @@
+CHANGES IN VERSION 0.0.2
+------------------------
+
+NEW FEATURES:
+    o New methods rtranges, mzranges, [, [[ for MSsliceList objects.
+    o msSlice for xcmsSet objects.
+
 CHANGES IN VERSION 0.0.1
 ------------------------
 

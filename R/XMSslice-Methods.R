@@ -22,7 +22,7 @@ setMethod("show", "MSslice", function(object){
 ##  Getter the rtrange slot.
 ####------------------------------------------------------------
 setMethod("rtrange", "MSslice", function(object){
-    return(object@rtrange)
+    return(object@rtrange[1:2])
 })
 
 ####============================================================
@@ -31,7 +31,7 @@ setMethod("rtrange", "MSslice", function(object){
 ##  Getter the mzrange slot.
 ####------------------------------------------------------------
 setMethod("mzrange", "MSslice", function(object){
-    return(object@mzrange)
+    return(object@mzrange[1:2])
 })
 
 ####============================================================
@@ -51,4 +51,13 @@ setMethod("intrange", "MSslice", function(object){
 ####------------------------------------------------------------
 setMethod("msData", "MSslice", function(object, ...){
     return(object@data)
+})
+
+####============================================================
+##  length
+##
+##  Get the number of MSdata objects
+####------------------------------------------------------------
+setMethod("length", "MSslice", function(x){
+    return(length(x@data))
 })

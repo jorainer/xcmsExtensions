@@ -1,3 +1,61 @@
+## Methods for xcmsSet classes.
+####============================================================
+##  msSlice
+##
+##  Extract an MSslice (or MSsliceList) object from the xcmsSet object.
+##  Each MSslice object containing an MSdata object for each sample in the
+##  xcmsSet object. NOTE: can NOT pass rt down; even BPPARAM does not work!
+setMethod("msSlice", "xcmsSet",
+          function(object, mzrange=NULL, rtrange=NULL, rt="corrected", BPPARAM=bpparam()){
+              rt <- match.arg(rt, c("corrected", "raw"))
+              call <- match.call()
+              ## Will run the msSlice separately on each xcmsRaw object. To reduce the required
+              ## memory demand,
+              ## use bplapply.
+              ## We're setting profstep to 0, so we don't do the profile matrix calculation.
+              sampidx <- 1:length(filepaths(object))
+              resu <- bplapply(as.list(sampidx), function(z, object, rt, mzrange, rtrange){
+                  ## Get the raw object.
+                  xr <- getXcmsRaw(object, sampleidx=z, profstep=0, rt=rt)
+                  ## Get the MSsliceList on that.
+                  slices <- msSlice(xr, mzrange=mzrange, rtrange=rtrange)
+                  return(slices)
+              }, object=object, rt=rt, mzrange=mzrange, rtrange=rtrange, BPPARAM=BPPARAM)
+              ## OK, resu will now be a list of MSslice or MSsliceList objects (depending
+              ## on whether mzrange or rtrange were a matrix or not).
+              ## Will now combine the MSdata for the individual samples into one MSslice.
+              if(is(resu[[1]], "MSslice")){
+                  ## Just ensure that all are MSslices...
+                  if(!all(unlist(lapply(resu, function(z){is(z, "MSslice")}))))
+                      stop("Not all of the returned objects are 'MSslice' objects!")
+                  return(MSslice(lapply(resu, msData)))
+              }
+              if(is(resu[[1]], "MSsliceList")){
+                  if(!all(unlist(lapply(resu, function(z){is(z, "MSsliceList")}))))
+                      stop("Not all of the returned objects are 'MSsliceList' objects!")
+                  ## Check if the lengths are the same.
+                  Ls <- unique(unlist(lapply(resu, length)))
+                  if(length(Ls) != 1)
+                      stop("Something wrong: got different lengths of MSsliceList objects!")
+                  ## Do a for loop extracting each time the MSdata i and storing that into a
+                  ## new MSslice
+                  mslList <- vector("list", Ls)
+                  for(i in 1:Ls){
+                      mslList[[i]] <- MSslice(lapply(resu, function(z){
+                          return(msData(z@slices[[i]]))
+                      }))
+                  }
+                  return(MSsliceList(mslList))
+              }else{
+                  stop("The method returned something wrong!")
+              }
+
+          })
+
+
+
+
+
 ## ## Extension methods and functions for the xcms package.
 ## ## Simple function to find the closest peak group.
 ## ## x: xcmsSet object.

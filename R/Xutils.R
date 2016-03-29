@@ -59,19 +59,19 @@
 }
 
 
-## Returns always a matrix with 3 columns: rt, mz, intensity. Is in principal the
-## same thing as implemented in the rawMat method.
-.getWhatever <- function(xraw, mzrange=NULL, rtrange=NULL){
-    if(is.null(mzrange))
-        mzrange <- range(xraw@env$mz)
-    if(is.null(rtrange))
-        rtrange <- range(xraw@scantime)
-    ## Define which of the time points are within the time range.
-    timeRange <- range(which(xraw@scantime >= rtrange[1] & xraw@scantime <= rtrange[2]))
+## ## Returns always a matrix with 3 columns: rt, mz, intensity. Is in principal the
+## ## same thing as implemented in the rawMat method.
+## .getWhatever <- function(xraw, mzrange=NULL, rtrange=NULL){
+##     if(is.null(mzrange))
+##         mzrange <- range(xraw@env$mz)
+##     if(is.null(rtrange))
+##         rtrange <- range(xraw@scantime)
+##     ## Define which of the time points are within the time range.
+##     timeRange <- range(which(xraw@scantime >= rtrange[1] & xraw@scantime <= rtrange[2]))
 
-    ## Get the indices of values within the mz and the rt range.
-    massIdx <- which(xraw@env$mz >= mzrange[1] & xraw@env$mz <= mzrange[2])
-    subsetIdx <- intersect()
-    ##scanRange <-
-}
+##     ## Get the indices of values within the mz and the rt range.
+##     massIdx <- which(xraw@env$mz >= mzrange[1] & xraw@env$mz <= mzrange[2])
+##     subsetIdx <- intersect()
+##     ##scanRange <-
+## }
 

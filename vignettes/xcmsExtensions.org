@@ -119,7 +119,15 @@ function-naming conventions).
 To enable a more streamlined and user-friendly access to MS data, the
 =xcmsExtensions= package defines the following objects. Some of these are
 redundant in their data content with comparable objects in =xcms=, but these, in
-most cases, do not provide all the data or have other limitations.
+most cases, do not provide all the data or have other limitations. The =xcms=
+package defines for example the =xcmsEIC= class and the =getEIC= method to
+extract ion chromatograms from an =xcmsSet= object. This, by default, is however
+extracted from the /profile/ matrix that represents intensity values aggregated
+in equal-spaced bins in m/z space. In addition there exists the =rawEIC= method
+that extracts m/z, scan index and corresponding intensity values from the /raw/
+data, but does not return these as an =xcmsEIC= object. The classes and methods
+defined in =xcmsExtensions= package try to solve some of these possible
+confusions by the introduction of the below listed classes and their methods.
 
 + =MSdata=: this is the basic object holding retention time (rt), m/z and
   measured intensities for the rt-mz tuples. The retention time is internally
@@ -133,7 +141,10 @@ most cases, do not provide all the data or have other limitations.
 
 + =MSslice=: represents in principle just a /wrapper/ object for multiple
   =MSdata= objects, all defining the same area (slice) in the m/z rt space, but
-  across several samples.
+  across several samples. Usually, a =MSslice= object represents the same slice
+  of data for each of the samples of an =xcmsSet= object. Note also that,
+  depending on the data, each =MSdata= object might have a slightly different
+  range of m/z and rt values.
 
 + =MSsliceList=: a list of several =MSslice= object. If e.g. different slices
   defined by different mz/rt ranges from a single sample (e.g. from a single
@@ -268,7 +279,7 @@ possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
 ** TODO Stuff to work with the /HMDB/ xml files?
 ** TODO =scantime= method for =xcmsRaw=.
 
-** TODO =MSslice= class
+** TODO =MSslice= class [0/2]
 
 The =MSslice= represents a part of the data defined by an =rtrange= and an
 =mzrange=. Would be nice to store that for one such range across several
@@ -276,12 +287,32 @@ files. But this again requires that the times AND mz are synced.
 
 + [ ] Extract such an object using =slice= from an =xcmsSet= or =xcmsRaw=
   object.
++ [ ] =plot= method: two different ones, one for the spectrum (intensity vs mz)
+  and one for the chromatogram (intensity vs rt). In both cases we have to sum
+  up intensities for /close/ values either on rt or on mz.
++ [ ] Documentation.
++ [ ] Examples to the vignette.
 
-** TODO =MSsliceList= class
+** TODO =MSsliceList= class [2/3]
 
 Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 
++ [X] Implement =[= to subset the list.
++ [X] Implement =[[= to extract individual (single) elements.
++ [ ] Add names slot.
++ [ ] Documentation.
++ [ ] Examples to the vignette.
+
 
 ** TODO =xic=
+
+** TODO Easy identification database.
+
++ [ ] Create a simple database (table) with mass, internal id, external id,
+  source and name to easily and fast identify peaks based on mass alone.
++ [ ] Method =simpleIdentify= method.
+
+** TODO shiny app to visualize the data of an =xcmsSet= or =xcmsRaw= object.
+
 
 * References

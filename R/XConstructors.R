@@ -93,17 +93,17 @@ MSdata <- function(mz, rtime, intensity, mslevel=1){
     if(missing(mz) | missing(rtime) | missing(intensity))
         stop("All three of 'mz', 'rtime' and 'intensity' have to be specified!")
     if(length(rtime) == 0){
-        rtr <- c(0, 0)
+        rtr <- numeric()
     }else{
         rtr <- range(rtime)
     }
     if(length(mz) == 0){
-        mzr <- c(0, 0)
+        mzr <- numeric()
     }else{
         mzr <- range(mz)
     }
     if(length(intensity) == 0){
-        intr <- c(0, 0)
+        intr <- numeric()
     }else{
         intr <- range(intensity)
         }

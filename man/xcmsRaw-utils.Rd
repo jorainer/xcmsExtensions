@@ -3,7 +3,7 @@
 \alias{scantimes}
 \alias{scantimes,xcmsRaw-method}
 \alias{getData}
-\alias{getData,ANY-method}
+\alias{getData,xcmsRaw,ANY-method}
 
 \title{Various utility functions for xcmsRaw objects}
 
@@ -15,7 +15,7 @@
 
 \S4method{scantimes}{xcmsRaw}(x)
 
-\S4method{scantime}{xcmsRaw}(x, mzrange=NULL, rtrange=NULL, intrange=NULL)
+\S4method{getData}{xcmsRaw}(x, mzrange=NULL, rtrange=NULL, intrange=NULL)
 
 }
 \arguments{
@@ -88,6 +88,7 @@
   Johannes Rainer.
 }
 \seealso{
+  \code{\link{MSdata}}, \code{\link{MSslice}}, \code{\link{MSsliceList}}
 }
 \examples{
 ## Load the test data.

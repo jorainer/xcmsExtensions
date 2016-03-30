@@ -1,6 +1,15 @@
 setGeneric("closestGroup", function(x, ...)
     standardGeneric("closestGroup"))
 
+setGeneric("getChromatogram", function(object, ...)
+    standardGeneric("getChromatogram"))
+setGeneric("getSpectrum", function(object, ...)
+    standardGeneric("getSpectrum"))
+setGeneric("plotChromatogram", function(object, ...)
+    standardGeneric("plotChromatogram"))
+setGeneric("plotSpectrum", function(object, ...)
+    standardGeneric("plotSpectrum"))
+
 setGeneric("getData", function(x, mzrange=NULL, rtrange=NULL, intrange=NULL, ...)
     standardGeneric("getData"))
 

@@ -15,7 +15,8 @@ setMethod("msSlice", "xcmsSet",
               ## We're setting profstep to 0, so we don't do the profile matrix calculation.
               sampidx <- 1:length(filepaths(object))
               resu <- bplapply(as.list(sampidx), function(z, object, rt, mzrange, rtrange){
-                  ## Get the raw object.
+                  ## Get the raw object. We don't want the profile matrix to be generated
+                  ## thus we set profstep to 0.
                   xr <- getXcmsRaw(object, sampleidx=z, profstep=0, rt=rt)
                   ## Get the MSsliceList on that.
                   slices <- msSlice(xr, mzrange=mzrange, rtrange=rtrange)

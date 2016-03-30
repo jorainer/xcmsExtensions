@@ -26,7 +26,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
   %\VignetteDepends{xcmsExtensions,xcms,faahKO}
   %\VignettePackage{xcmsExtensions}
-  %\VignetteKeywords{Genetics}
+  %\VignetteKeywords{MassSpectrometry, Metabolomics}
 bibliography: references.bib
 csl: biomed-central.csl
 references:
@@ -36,11 +36,6 @@ references:
   - family: noname
     given: noname
 ---
-
-**Package**: `r Biocpkg("FamAgg")`<br />
-**Authors**: `r packageDescription("FamAgg")$Author`<br />
-**Modified**: 22 December, 2015<br />
-**Compiled**: `r date()`
 
 #+END_HTML
 
@@ -111,46 +106,60 @@ http://stackoverflow.com/questions/22527867/adding-svn-remote-to-existing-git-re
 This package provides some functions and utilities extending the functionality
 of the =xcms= Bioconductor package. These functions aim to provide a better
 integration into the Bioconductor framework (following their coding- and
-function-naming conventions).
+function-naming conventions). Some of the concepts used in this package and
+definitions are from \cite{Smith:2014di}.
 
 
 * New objects introduced by =xcmsExtensions=
 
 To enable a more streamlined and user-friendly access to MS data, the
 =xcmsExtensions= package defines the following objects. Some of these are
-redundant in their data content with comparable objects in =xcms=, but these, in
-most cases, do not provide all the data or have other limitations. The =xcms=
-package defines for example the =xcmsEIC= class and the =getEIC= method to
-extract ion chromatograms from an =xcmsSet= object. This, by default, is however
-extracted from the /profile/ matrix that represents intensity values aggregated
-in equal-spaced bins in m/z space. In addition there exists the =rawEIC= method
-that extracts m/z, scan index and corresponding intensity values from the /raw/
-data, but does not return these as an =xcmsEIC= object. The classes and methods
-defined in =xcmsExtensions= package try to solve some of these possible
-confusions by the introduction of the below listed classes and their methods.
+redundant in functionality and data content with objects in =xcms= that do
+however, in most cases, not provide simple access to all of the data or have
+other limitations. The =xcms= package defines for example the =xcmsEIC= class
+and the =getEIC= method to extract ion chromatograms from an =xcmsSet=
+object. The EIC, by default, is however extracted from the /profile/ matrix that
+represents intensity values aggregated in equal-spaced bins in m/z space. In
+addition there exists the =rawEIC= method that extracts m/z, scan index and
+corresponding intensity values from the /raw/ data, but does not return these as
+an =xcmsEIC= object (and does also not report the actual retention time). The
+=xcmsExtensions= package tries to solve some of these possible confusions by the
+introduction of the below listed classes and their methods.
 
 + =MSdata=: this is the basic object holding retention time (rt), m/z and
-  measured intensities for the rt-mz tuples. The retention time is internally
-  stored as an =Rle= object, the mz values as =numeric= and the intensities as
-  =integer= enabling a lower memory footprint. By design this object is thought
+  measured intensities for the rt-mz tuples. To reduce the memory footprint, the
+  retention time is internally stored as an =Rle= object, the mz values as
+  =numeric= and the intensities as =integer=. By design this object is thought
   to hold only MS data for a subset of a whole MS run, but in principle, it
   could also store all the detected intensities for all m/z and retention/scan
-  times in which case this object is somewhat redundant with the =xcmsRaw=
-  object. Extracting paired and matched rt, mz and intensity values from an
-  =MSdata= object is however easier.
+  times. In this latter case the object is somewhat redundant with the =xcmsRaw=
+  object, but provides an easier extraction of paired and matched rt, mz and
+  intensity values (using the =msData= method).
 
-+ =MSslice=: represents in principle just a /wrapper/ object for multiple
-  =MSdata= objects, all defining the same area (slice) in the m/z rt space, but
-  across several samples. Usually, a =MSslice= object represents the same slice
-  of data for each of the samples of an =xcmsSet= object. Note also that,
-  depending on the data, each =MSdata= object might have a slightly different
-  range of m/z and rt values.
++ =MSslice=: represents a /wrapper/ object for multiple =MSdata= objects, all
+  defining the same area (slice) in the m/z-rt space, but across several
+  samples. By design, a =MSslice= object is thought to hold data for the same
+  slice in each of the samples of an =xcmsSet= object. Note also that, depending
+  on the data, each =MSdata= object might have a slightly different range of m/z
+  and rt values.
 
 + =MSsliceList=: a list of several =MSslice= object. If e.g. different slices
   defined by different mz/rt ranges from a single sample (e.g. from a single
   =xcmsRaw= object), these will be stored and returned in a =MSsliceList=.
 
-* Accessing data in =xcmsRaw= objects
+* Extracting MS data
+
+In this section we show some examples how (raw or binned) data of one or several
+MS runs can be extracted from =xcmsRaw=, =xcmsSet=, =MSsliceList=, =MSslice= or
+=MSdata= objects.
+
+
+* Alternative way to access data in =xcmsRaw= objects
+
+The =getData= method is an alternative method that can be used to extract paired
+retention time, m/z and intensity values from an =xcmsRaw= object. The advantage
+over the =msData= method described in the previous method is, that it allows
+also a sub-setting by intensities.
 
 Loading the libraries and the =xcmsRaw= object.
 
@@ -166,7 +175,7 @@ The raw data of an LC/GC-MS run is stored in an =xcmsRaw= object, more
 specifically, in the slots =@scantime=, =@env$mz=, =@env$intensity=. Extracting
 data from such a =xcmsRaw= object can however be somewhat cumbersome, especially
 when we want to extract only (eventually multiple) sub-sets of data. Also, for
-memory reasons, the length of the =@scantome= slot does not match the length of
+memory reasons, the length of the =@scantime= slot does not match the length of
 the =@env$mz= slot as it stores only the distinct scan/measurement time points.
 We can however use the =scantimes= method to extract a numeric vector that
 matches the length of the =@env$mz= and =@env$intensity= slots, thus specifying
@@ -303,6 +312,12 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [ ] Documentation.
 + [ ] Examples to the vignette.
 
+** TODO =MSdata= class [/]
+
++ [ ] =chromatogram=: plot the chromatogram of the =MSdata= object.
++ [ ] =getChromatogram=: extract a chromatogram.
++ [ ] =plotChromatogram=: plot a chromatogram; uses =getChromatogram= to extract
+  the chromatogram.
 
 ** TODO =xic=
 

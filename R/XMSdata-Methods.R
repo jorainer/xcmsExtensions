@@ -187,19 +187,72 @@ setMethod("as.matrix", "MSdata",
 .getChrom <- function(x, FUN=sum, bins=NULL, nbin=NULL, binSize=NULL){
     if(!is.null(nbin) & !is.null(binSize))
         stop("Arguments 'nbin' and 'binSize' are mutually exclusive")
-    if(is.null(bins) & (!is.null(nbin) | !is.null(binSize)){
+    if(is.null(bins) & (!is.null(nbin) | !is.null(binSize))){
         ## Calculate the bins internally.
-        bins <- .getBins()
+        bins <- .getBins(rtrange(x), nbin=nbin, binSize=binSize)
     }
 
     ## Do the aggregation on bins if it's not empty
     if(!is.null(bins)){
+        ## Get the rt intervals for which we do have data.
+        rtIntervals <- findInterval(rtime(x), bins, all.inside=TRUE)
+        aggInts <- .aggregateWithIntervals(intensity(x), rtIntervals, FUN=FUN)
+        return(cbind(rtime=.binMid(bins)[unique(rtIntervals)], intensity=aggInts))
     }else{
         ## Check if there would be any need to aggregate the data.
-        if(length(msd@rtime) == length(unique(msd@rtime))){
+        if(length(x@rtime) == length(unique(x@rtime))){
             ## No need
+            return(cbind(rtime=rtime(x), intensity=intensity(x)))
         }else{
             ## Aggregate.
+            aggVals <- unlist(lapply(split(intensity(x), rtime(x)), FUN=FUN),
+                              use.names=FALSE)
+            return(cbind(rtime=sort(unique(rtime(x))), intensity=aggVals))
         }
     }
 }
+
+####============================================================
+##  getChromatogram
+##
+##  Method to extract the chromatogram of an MSdata object. Data will be eventually
+##  binned in rt dimension and intensities aggregated in m/z dimension.
+##  The method returns a matrix with two columns, rtime and intensity.
+setMethod("getChromatogram", "MSdata",
+          function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL, ...){
+              ## Input arg checking... at least to some degree.
+              if(!is.null(bins)){
+                  if(!is.numeric(bins) | length(bins) < 2)
+                      stop("'bins' should be a numeric vector of length > 2",
+                           " specifying the bins in which the data should be binned.")
+              }
+              if(!is.null(nbin)){
+                  if(!is.numeric(nbin) | length(nbin) > 1)
+                      stop("'nbin' should be a numeric vector of length 1!")
+              }
+              if(!is.null(binSize)){
+                  if(!is.numeric(binSize) | length(binSize) > 1)
+                      stop("'binSize' should be a numeric vector of length 1!")
+              }
+              return(.getChrom(object,FUN=FUN, bins=bins, nbin=nbin,
+                               binSize=binSize))
+})
+
+####============================================================
+##  plotChromatogram
+##
+####------------------------------------------------------------
+setMethod("plotChromatogram", "MSdata",
+          function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
+                   add=FALSE, main=paste(format(mzrange(object), 2), collapse="-"),
+                   xlab="Retention time", ylab="Intensity",
+                   ...){
+              dat <- getChromatogram(object, FUN=FUN, bins=bins, nbin=nbin,
+                                     binSize=binSize)
+              if(add){
+                  points(dat[, 1], dat[, 2], ...)
+              }else{
+                  plot(dat[, 1], dat[, 2], main=main, xlab=xlab, ylab=ylab, ...)
+              }
+          })
+

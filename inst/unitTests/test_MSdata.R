@@ -81,11 +81,11 @@ test_msData <- function(){
 
 test_binning <- function(){
     vals <- 1:2000
-    bins <- .getBins(vals, nbin=20)
+    bins <- xcmsExtensions:::.getBins(vals, nbin=20)
     ## expect to have 100 elements in each bin
     Test <- split(vals, findInterval(vals, bins, all.inside=TRUE))
     checkEquals(unique(unlist(lapply(Test, length), use.names=FALSE)), 100)
-    bins <- .getBins(vals, binSize=100)
+    bins <- xcmsExtensions:::.getBins(vals, binSize=100)
     ## expect to have 100 elements in each bin
     Test <- split(vals, findInterval(vals, bins, all.inside=TRUE))
     checkEquals(unique(unlist(lapply(Test, length), use.names=FALSE)), 100)
@@ -96,12 +96,12 @@ test_binning <- function(){
     checkTrue(findInterval(c(2000), bins, all.inside=TRUE) == 20)
     checkEquals(findInterval(c(300, 200, 1000), bins, all.inside=TRUE), c(3, 2, 10))
 
-    system.time(Test <- .aggregateWithBins(vals, bins=bins, FUN=mean))
+    system.time(Test <- xcmsExtensions:::.aggregateWithBins(vals, bins=bins, FUN=mean))
     checkEquals(Test, (50*seq(1, 40, by=2))+0.5)
-    checkEquals(Test, .binMeans(bins))
+    checkEquals(Test+0.5, xcmsExtensions:::.binMid(bins))
 
     ## Check .binMeans.
-    checkEquals(.binMeans(c(2, 4, 6, 8, 10)), c(3, 5, 7, 9))
+    checkEquals(xcmsExtensions:::.binMid(c(2, 4, 6, 8, 10)), c(3, 5, 7, 9))
 }
 
 
@@ -117,11 +117,110 @@ test_plot_chrom <- function(){
         plot(rtime(msd), intensity(msd), type="b")
 
     ## Now doing a binning of the data.
-    bins <- .getBins(rtrange(msd), binSize=1)
+    bins <- xcmsExtensions:::.getBins(rtrange(msd), binSize=1)
     ints <- findInterval(rtime(msd), bins, all.inside=TRUE)
-    aggs <- .aggregateWithIntervals(intensity(msd), ints)
-    midP <- .binMid(bins)
-
-    points(midP[unique(ints)], aggs, col="blue", type="b")
+    aggs <- xcmsExtensions:::.aggregateWithIntervals(intensity(msd), ints)
+    midP <- xcmsExtensions:::.binMid(bins)
+    if(do.plot)
+        points(midP[unique(ints)], aggs, col="blue", type="b")
     ## Plotting a spectrum: intensity (y) vs mz (x)
 }
+
+
+test_getChrom <- function(){
+    ## Testing the internal getChrom function.
+    do.plot <- FALSE
+
+    ## Get the data.
+    mzr <- c(302, 302.1)
+    rtr <- c(2550, 2700)
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    ## There should be no need to aggregate...
+    chr <- xcmsExtensions:::.getChrom(msd)
+    checkEquals(chr, as.matrix(msd)[, c("rtime", "intensity")])
+
+    ## Do binning specifying nbin
+    chrBin <- xcmsExtensions:::.getChrom(msd, nbin=20)
+    ## Manually specify the bins.
+    bns <- xcmsExtensions:::.getBins(rtrange(msd), nbin=20)
+    chrBin2 <- xcmsExtensions:::.getChrom(msd, bins=bns)
+    ## That should be the same.
+    checkEquals(chrBin, chrBin2)
+
+    ## the same with FUN=mean
+    chrBin <- xcmsExtensions:::.getChrom(msd, nbin=20, FUN=mean)
+    ## Manually specify the bins.
+    bns <- xcmsExtensions:::.getBins(rtrange(msd), nbin=20)
+    chrBin2 <- xcmsExtensions:::.getChrom(msd, bins=bns, FUN=mean)
+    ## That should be the same.
+    checkEquals(chrBin, chrBin2)
+
+    ## The same with binSize
+    chrBin <- xcmsExtensions:::.getChrom(msd, binSize=2)
+    ## Manually specify the bins.
+    bns <- xcmsExtensions:::.getBins(rtrange(msd), binSize=2)
+    chrBin2 <- xcmsExtensions:::.getChrom(msd, bins=bns)
+    ## That should be the same.
+    checkEquals(chrBin, chrBin2)
+
+    ## Do use a larger mz range.
+    mzr <- c(200, 400)
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    ## Get the chrom.
+    chr <- xcmsExtensions:::.getChrom(msd)
+    ## Manually doing that.
+    manVals <- unlist(lapply(split(intensity(msd), rtime(msd)), FUN=sum), use.names=FALSE)
+    checkEquals(chr[, "intensity"], manVals)
+
+    ## And with binning.
+    chrBin <- xcmsExtensions:::.getChrom(msd, nbin=20)
+
+    if(do.plot)
+        plot(chr[, 1], chr[, 2])
+    if(do.plot)
+        points(chrBin[, 1], chrBin[, 2], col="blue", type="b")
+    chrBinMean <- xcmsExtensions:::.getChrom(msd, nbin=20, FUN=mean)
+    chr <- xcmsExtensions:::.getChrom(msd, FUN=mean)
+    if(do.plot)
+        plot(chr[, 1], chr[, 2])
+    if(do.plot)
+        points(chrBinMean[, 1], chrBinMean[, 2], col="green", type="b")
+}
+
+test_getChromatogram <- function(){
+    do.plot <- FALSE
+    mzr <- c(200, 300)
+    rtr <- c(2400, 2700)
+
+    datmat <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    suppressWarnings(
+        datmat2 <- msData(getXcmsRaw(xset, 2), mzrange=mzr, rtrange=rtr)
+    )
+    ## getChromatogram
+    chr1 <- getChromatogram(datmat)
+    chr2 <- getChromatogram(datmat2)
+
+    ## Test with 40 bins.
+    chr1 <- getChromatogram(datmat, nbin=40)
+    chr2 <- getChromatogram(datmat2, nbin=40)
+    checkEquals(nrow(chr1), 40)
+
+    ## Test getting the same rts.
+    bns <- xcmsExtensions:::.getBins(rtr, nbin=50)
+    chr1 <- getChromatogram(datmat, bins=bns)
+    chr2 <- getChromatogram(datmat2, bins=bns)
+    checkEquals(chr1[, 1], chr2[, 1])
+
+    ## Test plotChromatogram
+    if(do.plot){
+        plotChromatogram(datmat, type="b")
+        plotChromatogram(datmat2, type="b", add=TRUE, col="red")
+        ## Using the max signal in m/z
+        plotChromatogram(datmat, type="b", FUN=max, nbin=40)
+        plotChromatogram(datmat2, type="b", add=TRUE, col="red", FUN=max, nbin=40)
+    }
+}
+
+

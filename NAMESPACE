@@ -9,6 +9,8 @@ import(BiocParallel)
 import(xcms)
 importClassesFrom(xcms)
 importMethodsFrom(xcms)
+## Base stuff
+importFrom("graphics", "points")
 ##importClassesFrom(graph, graphNEL)
 ##importFrom(graph, graphNEL)
 ## importMethodsFrom(graph, leaves, isConnected, edges, nodes, isDirected,
@@ -22,7 +24,8 @@ exportMethods("scantimes", "getData", "msMap")
 
 ## MSdata methods:
 exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
-              "rtrange", "mzrange", "intrange")
+              "rtrange", "mzrange", "intrange", "getChromatogram",
+              "getSpectrum", "plotChromatogram", "plotSpectrum")
 
 ## MSsliceList methods:
 exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",

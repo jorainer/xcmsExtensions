@@ -4,7 +4,7 @@
 \alias{MSdata-class}
 \alias{MSdata}
 \alias{msData}
-\alias{as.matrix,}
+\alias{as.matrix,MSdata-method}
 \alias{msData,xcmsRaw-method}
 \alias{show,MSdata-method}
 \alias{rtime<-}
@@ -19,6 +19,10 @@
 \alias{mz<-,MSdata-method}
 \alias{mz,MSdata-method}
 \alias{mzrange,MSdata-method}
+\alias{getChromatogram}
+\alias{getChromatogram,MSdata-method}
+\alias{plotChromatogram}
+\alias{plotChromatogram,MSdata-method}
 
 
 \title{Simple MS data object}
@@ -37,6 +41,9 @@
 
 \S4method{as.matrix}{MSdata}(x, ...)
 
+\S4method{getChromatogram}{MSdata}(object, FUN=max, bins=NULL,
+                                   nbin=NULL, binSize=NULL, ...)
+
 \S4method{intensity}{MSdata}(object)
 
 \S4method{intensity}{MSdata}(object) <- value
@@ -53,6 +60,12 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
 \S4method{mzrange}{MSdata}(object)
 
+\S4method{plotChromatogram}{MSdata}(object, FUN=max, bins=NULL,
+                                    nbin=NULL, binSize=NULL, add=FALSE,
+                                    main=paste(format(mzrange(object),
+                                    2), collapse="-"),
+              xlab="Retention time", ylab="Intensity", ...)
+
 \S4method{rtime}{MSdata}(object, return.type="numeric")
 
 \S4method{rtime}{MSdata}(object) <- value
@@ -64,8 +77,43 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
   (in alphabetic order)
 
+  \item{add}{
+    For \code{plotChromatogram}: if the plot should be added to an
+    existing plot.
+  }
+
+  \item{bins}{
+    For \code{getChromatogram} and \code{plotChromatogram}: Numeric
+    vector specifying the bins to bin the retention time. See
+    \code{getChromatogram} method description for details on the
+    binning.
+  }
+
+  \item{binSize}{
+    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    (length 1) specifying the bin width/size. See
+    \code{getChromatogram} method description for details on the
+    binning.
+  }
+
+  \item{FUN}{
+    For \code{getChromatogram} and \code{plotChromatogram}: function
+    that should be used to aggregate intensities within a bin. By
+    default the largest intensity within a bin is selected. See
+    \code{getChromatogram} method description for details on the
+    binning.
+  }
+
   \item{intensity}{
     A numeric vector specifying the intensity values.
+  }
+
+  \item{main}{
+    For \code{plotChromatogram}: the title for the plot.
+  }
+
+  \item{mslevel}{
+    For \code{MSdata}: the MS level.
   }
 
   \item{mz}{
@@ -75,6 +123,13 @@ MSdata(mz, rtime, intensity, mslevel=1)
   \item{mzrange}{
     For \code{msData}: a numeric of length 2 specifying the range of m/z
     values to be extracted from the object.
+  }
+
+  \item{nbin}{
+    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    (length 1) specifying the number of bins in which the retention time
+    range should be binned. See \code{getChromatogram} method
+    description for details on the binning.
   }
 
   \item{object}{
@@ -106,8 +161,19 @@ MSdata(mz, rtime, intensity, mslevel=1)
     For \code{as.matrix}: a \code{MSdata} object.
   }
 
+  \item{xlab}{
+    For \code{plotChromatogram}: the label for the x-axis.
+  }
+
+  \item{ylab}{
+    For \code{plotChromatogram}: the label for the y-axis.
+  }
+
   \item{...}{
-    Presently not used.
+    For \code{plotChromatogram}: additional graphical properties to be
+    passed to the \code{plot} function.
+
+    For all other methods: not used.
   }
 
 }
@@ -172,6 +238,42 @@ MSdata(mz, rtime, intensity, mslevel=1)
       object.
     }
 
+    \item{getChromatogram}{
+      Extracts the chromatogram from the \code{MSdata} (i.e. intensities
+      along the retention time dimension). The method returns a numeric
+      matrix with two columns, \code{"rtime"} and
+      \code{"intensity"}. Since the \code{MSdata} is in principle
+      3-dimensional (intensities in the m/z - rt space), values have to
+      be aggregated in the m/z dimension. By default the method only
+      aggregates intensities along the m/z dimension with the same
+      retention time value. Specifying either one of \code{bins},
+      \code{nbin} and \code{binSize} it is in addition possible to
+      bin the retention times into discrete, equal spaced, bins. Thus,
+      all intensities falling into one bin (i.e. retention time within
+      the bin and all intensities along the m/z dimension present in the
+      \code{MSdata}) are aggregated using the function \code{FUN}, which
+      by default just sums up all intensities.
+
+      The binning in rt-dimension is performed as follows: if
+      \code{nbins} is specified, the range of retention times
+      (\code{rtrange}) is split into \code{nbins} equal sized bins and
+      all intensities with an retention time within a certain bin are
+      aggregated (including all in m/z dimension; within
+      \code{mzrange}). For \code{binSize}, the range is split into bins
+      with the width/size \code{binSize}. Argument \code{bins} allows to
+      define the bins externally and thus ensure an identical binning
+      e.g. across \code{MSdata} objects from different samples.
+
+      How the aggregation of intensity values along the m/z range (and
+      eventually also for retention times within the same retention time
+      bin) is performed can be specified with the \code{FUN}
+      argument. By default, the maximal signal is selected
+      (i.e. \code{FUN=max}). For a \code{MSdata} object representing a full MS
+      run, this would correspond to a \emph{base peak chromatogram}
+      (BPC), while using \code{FUN=sum} would result in an \emph{total
+      ion chromatogram} (TIC) [Smith 2014].
+    }
+
     \item{intensity, intensity<-}{
       Get or set the intensity values of the \code{MSdata}
       object. \code{intensity} returns the intensity values.
@@ -208,12 +310,28 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 }
 
+\section{Data visualizations}{
+  \describe{
+    \item{plotChromatogram}{
+      The method plots the chromatogram of an \code{MSdata}
+      object which is internally extracted by the \code{getChromatogram}
+      method (refer to the description of that function for the data
+      binning etc.).
+    }
+  }
+}
+
 \value{
   Refer to the method and function description above for detailed
   information on the returned result object.
 }
 \author{
   Johannes Rainer.
+}
+\references{
+  Smith R, Mathis AD, Ventura D and Prince JT. (2014) Proteomics,
+  lipidomics, metabolomics: a mess spectrometry tutorial from a computer
+  scientists's point of view. \emph{BMC Bioinformatics}, 15(Suppl 7):59.
 }
 \seealso{
   \code{\link[xcms]{xcmsRaw}}, \code{\link{MSslice}}
@@ -249,6 +367,44 @@ head(intensity(mssub))
 
 ## Extract a matrix with the full data.
 head(as.matrix(mssub))
+
+
+## Extracting the chromatogram from an MSdata.
+## Defining the mz and rt range. The are corresponds approx. to the
+## peak in the xcms vignette (Figure 4).
+mzr <- c(302, 302.5)
+rtr <- c(2500, 2700)
+msd <- msData(xraw, rtrange=rtr, mzrange=mzr)
+
+## How many data points do we have?
+length(rtime(msd))
+## Hom many unique retention times?
+length(unique(rtime(msd)))
+## Thus, we have some intensities with the same retention time (but different
+## m/z).
+
+## Extracting the chromatogram.
+chr <- getChromatogram(msd)
+nrow(chr)
+## By default, the method aggregates intensities with identical retention time.
+
+## Plotting the chromatogram
+plotChromatogram(msd, type="l")
+
+## Next we extract a chromatogram with binning on the retention time. Thus we
+## set to split the retention time range into 50 equal spaced bins and to aggregate
+## the intensities within each of the bins. As aggregation function we use "max", i.e.
+## we select the maximal intensity for each bin.
+chr2 <- getChromatogram(msd, FUN=max, nbin=50)
+nrow(chr2)
+
+## Adding that chromatogram to the existing plot.
+plotChromatogram(msd, FUN=max, nbin=50, add=TRUE, col="blue", type="b")
+
+## Generating the base peak chromatogram (BPC) and the total ion chromatogram (TIC)
+fulld <- msData(xraw)
+plotChromatogram(fulld, FUN=max, type="l", main="BPC")
+plotChromatogram(fulld, FUN=sum, type="l", main="TIC")
 
 }
 \keyword{classes}

@@ -1,1 +1,1 @@
-BiocGenerics:::testPackage("chrisUtils")
+BiocGenerics:::testPackage("xcmsExtensions")

@@ -1,3 +1,7 @@
+# badges:
+[[https://travis-ci.org/jotsetung/xcmsExtensions][https://travis-ci.org/jotsetung/xcmsExtensions.svg?branch=master]]
+[[https://codecov.io/github/jotsetung/xcmsExtensions?branch=master][https://codecov.io/github/jotsetung/xcmsExtensions/coverage.svg?branch=master]]
+
 * Extensions to the =xcms= Bioconductor packages
 
 The =xcmsExtensions= package provides methods and functions extending the
@@ -6,3 +10,12 @@ included into the =xcms= package in the long run. At present the package is
 however under heavy development and thus far from being complete or stable.
 
 For more information see [[file:vignettes/xcmsExtensions.org]].
+
+** Installation
+
+Using the =devtools= R-package:
+
+#+BEGIN_SRC R
+  library(devtools)
+  install_github("jotsetung/xcmsExtensions")
+#+END:SRC

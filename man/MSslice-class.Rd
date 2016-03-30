@@ -166,6 +166,25 @@ MSslice(...)
 \section{Accessing data of an \code{MSslice} object}{
   \describe{
 
+    \item{getChromatogram}{
+      Extracts a numeric matrix with the chromatogram (i.e. intensities
+      along the retention time dimension) for each of the \code{MSdata}
+      object and hence samples of the \code{MSslice} object. The
+      rownames of the matrix represent the (unique) retention times and
+      each column contains the spectrum of one sample/\code{MSdata}
+      object (i.e. the intensities aggregated in m/z direction for the
+      respective retention time using the aggregation function specified
+      with argument \code{FUN}).
+
+      In the default settings, without specifying any of the arguments
+      \code{bins}, \code{nbin} or \code{binSize}, the method returns a
+      matrix with one row for each unique retention time across all of
+      the samples. Each row will only contain a numeric value for a
+      sample in which a signal was measured for that specific retention
+      time. In most instances it will be better to specify \code{nbin}
+      or \code{binSize}, to bin
+    }
+
     \item{intrange}{
       Get the range of intensity values of the slice. This represents the range of
       values across all samples (i.e. all \code{MSdata} objects within
@@ -197,6 +216,13 @@ MSslice(...)
       the \code{MSslice}). Returns a numeric of length
       2, or \code{c(NA, NA)} if the object is empty (or the internal
       \code{MSdata} object(s) don't contain any data).
+    }
+  }
+}
+
+\section{Data visualizations}{
+  \describe{
+    \item{plotChromatogram}{
     }
   }
 }

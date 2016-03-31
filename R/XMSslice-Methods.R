@@ -111,26 +111,34 @@ setMethod("getChromatogram", "MSslice",
 ####------------------------------------------------------------
 setMethod("plotChromatogram", "MSslice",
           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
-                   add=FALSE, main=paste(format(mzrange(object), 2), collapse="-"),
-                   xlab="Retention time", ylab="Intensity",
+                   main=paste(format(mzrange(object), 2), collapse="-"),
+                   xlab="Retention time", ylab="Intensity", col=1, lty=1,
                    ...){
-              ## First get all of the chromatograms.
-              chrs <- lapply(msData(object), function(z, theFun, ...){
-                  return(getChromatogram(z, FUN=theFun, ...))
-              }, theFun=FUN, )
-              ## Get the range of intensity values, range of rts.
-              xlim <- rtrange(object)
-              ## Plot the empty plot.
-              ## Check if we've got col or lty specified.
-              theDots <- list(...)
-              ## plot the individual chromatograms; for loop.
-
-              ##
-              dat <- getChromatogram(object, FUN=FUN, bins=bins, nbin=nbin,
-                                     binSize=binSize)
-              if(add){
-                  points(dat[, 1], dat[, 2], ...)
+              ## col and lty check
+              if(length(col) > 1){
+                  if(length(col) != length(object)){
+                      warning("Length of 'col' does not match length of 'object'; using only the first value.")
+                      col <- rep(col[1], length(object))
+                  }
               }else{
-                  plot(dat[, 1], dat[, 2], main=main, xlab=xlab, ylab=ylab, ...)
+                  col <- rep(col, length(object))
+              }
+              if(length(lty) > 1){
+                  if(length(lty) != length(object)){
+                      warning("Length of 'lty' does not match length of 'object'; using only the first value.")
+                      lty <- rep(lty[1], length(object))
+                  }
+              }else{
+                  lty <- rep(lty, length(object))
+              }
+              chrM <- getChromatogram(object, FUN=FUN, bins=bins, nbin=NULL, binSize=NULL)
+              xVals <- as.numeric(rownames(chrM))
+              xlim <- range(xVals)
+              ylim <- range(chrM, na.rm=TRUE)
+              ## Plot the empty plot.
+              plot(3, 3, pch=NA, main=main, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim)
+              ## plot the individual chromatograms; for loop.
+              for(i in 1:ncol(chrM)){
+                  points(xVals, chrM[, i], col=col[i], lty=lty[i], ...)
               }
           })

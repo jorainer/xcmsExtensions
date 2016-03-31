@@ -134,11 +134,11 @@ setMethod("as.matrix", "MSdata",
 ##  Argument bins might be returned by the .getBins function.
 .aggregateWithBins <- function(x, bins, FUN=sum){
     return(unlist(lapply(split(x, findInterval(x, bins, all.inside=TRUE)), FUN=FUN),
-                         recursive=FALSE, use.names=FALSE))
+                  recursive=FALSE, use.names=FALSE))
 }
 .aggregateWithIntervals <- function(x, ints, FUN=sum){
     return(unlist(lapply(split(x, ints), FUN=FUN),
-                         recursive=FALSE, use.names=FALSE))
+                  recursive=FALSE, use.names=FALSE))
 }
 
 ####============================================================
@@ -195,19 +195,22 @@ setMethod("as.matrix", "MSdata",
     ## Do the aggregation on bins if it's not empty
     if(!is.null(bins)){
         ## Get the rt intervals for which we do have data.
-        rtIntervals <- findInterval(rtime(x), bins, all.inside=TRUE)
-        aggInts <- .aggregateWithIntervals(intensity(x), rtIntervals, FUN=FUN)
+        rtIntervals <- findInterval(rtimeOrdered(x), bins, all.inside=TRUE)
+        aggInts <- .aggregateWithIntervals(intensityOrderedByRtime(x), rtIntervals,
+                                           FUN=FUN)
         return(cbind(rtime=.binMid(bins)[unique(rtIntervals)], intensity=aggInts))
     }else{
         ## Check if there would be any need to aggregate the data.
         if(length(x@rtime) == length(unique(x@rtime))){
             ## No need
-            return(cbind(rtime=rtime(x), intensity=intensity(x)))
+            return(cbind(rtime=rtimeOrdered(x),
+                         intensity=intensityOrderedByRtime(x)))
         }else{
             ## Aggregate.
-            aggVals <- unlist(lapply(split(intensity(x), rtime(x)), FUN=FUN),
+            aggVals <- unlist(lapply(split(intensityOrderedByRtime(x),
+                                           rtimeOrdered(x)), FUN=FUN),
                               use.names=FALSE)
-            return(cbind(rtime=sort(unique(rtime(x))), intensity=aggVals))
+            return(cbind(rtime=unique(rtimeOrdered(x)), intensity=aggVals))
         }
     }
 }
@@ -236,7 +239,7 @@ setMethod("getChromatogram", "MSdata",
               }
               return(.getChrom(object,FUN=FUN, bins=bins, nbin=nbin,
                                binSize=binSize))
-})
+          })
 
 ####============================================================
 ##  plotChromatogram
@@ -256,3 +259,131 @@ setMethod("plotChromatogram", "MSdata",
               }
           })
 
+####============================================================
+##  getSpectrum
+##
+## Get the spectrum from an MSdata object. Data will be eventually binned
+## in m/z dimension and intensities aggregated within these bins and along
+## the rt dimension.
+####------------------------------------------------------------
+setMethod("getSpectrum", "MSdata",
+          function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL, ...){
+              ## Input arg checking... at least to some degree.
+              if(!is.null(bins)){
+                  if(!is.numeric(bins) | length(bins) < 2)
+                      stop("'bins' should be a numeric vector of length > 2",
+                           " specifying the bins in which the data should be binned.")
+              }
+              if(!is.null(nbin)){
+                  if(!is.numeric(nbin) | length(nbin) > 1)
+                      stop("'nbin' should be a numeric vector of length 1!")
+              }
+              if(!is.null(binSize)){
+                  if(!is.numeric(binSize) | length(binSize) > 1)
+                      stop("'binSize' should be a numeric vector of length 1!")
+              }
+              return(.getSpec(object,FUN=FUN, bins=bins, nbin=nbin,
+                              binSize=binSize))
+
+          })
+####============================================================
+##  .getSpec
+##
+##  Basically the same as .getChrom, just along the other dimension.
+##  We're extracting all values ordered by Mz in this function, i.e.
+##  mzOrdered and intensityOrderedByMz.
+####------------------------------------------------------------
+.getSpec <- function(x, FUN=sum, bins=NULL, nbin=NULL, binSize=NULL){
+    if(!is.null(nbin) & !is.null(binSize))
+        stop("Arguments 'nbin' and 'binSize' are mutually exclusive")
+    if(is.null(bins) & (!is.null(nbin) | !is.null(binSize))){
+        ## Calculate the bins internally.
+        bins <- .getBins(mzrange(x), nbin=nbin, binSize=binSize)
+    }
+    ## Do the aggregation on bins if it's not empty
+    if(!is.null(bins)){
+        ## Get the rt intervals for which we do have data.
+        mzIntervals <- findInterval(mzOrdered(x), bins, all.inside=TRUE)
+        aggInts <- .aggregateWithIntervals(intensityOrderedByMz(x), mzIntervals,
+                                           FUN=FUN)
+        return(cbind(mz=.binMid(bins)[unique(mzIntervals)], intensity=aggInts))
+    }else{
+        ## Check if there would be any need to aggregate the data.
+        if(length(x@mz) == length(unique(x@mz))){
+            ## No need
+            return(cbind(mz=mzOrdered(x), intensity=intensityOrderedByMz(x)))
+        }else{
+            ## Aggregate.
+            aggVals <- unlist(lapply(split(intensityOrderedByMz(x),
+                                           mzOrdered(x)), FUN=FUN),
+                              use.names=FALSE)
+            return(cbind(mz=unique(mzOrdered(x)), intensity=aggVals))
+        }
+    }
+}
+####============================================================
+##  plotSpectrum
+##
+####------------------------------------------------------------
+setMethod("plotSpectrum", "MSdata",
+          function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
+                   add=FALSE, main=paste(format(rtrange(object), 2), collapse="-"),
+                   xlab="M/Z", ylab="Intensity",
+                   ...){
+              dat <- getSpectrum(object, FUN=FUN, bins=bins, nbin=nbin,
+                                 binSize=binSize)
+              if(add){
+                  points(dat[, 1], dat[, 2], ...)
+              }else{
+                  plot(dat[, 1], dat[, 2], main=main, xlab=xlab, ylab=ylab, ...)
+              }
+          })
+
+
+####============================================================
+##  "private" methods
+##
+####------------------------------------------------------------
+
+####============================================================
+##  rtimeOrdered
+##
+##  return the retention time as an ordered numeric.
+####------------------------------------------------------------
+setMethod("rtimeOrdered", "MSdata",
+          function(object){
+              return(sort(rtime(object)))
+          })
+####============================================================
+##  mzOrdered
+##
+##  Return the mz values ordered increasingly.
+####------------------------------------------------------------
+setMethod("mzOrdered", "MSdata",
+          function(object){
+              return(sort(mz(object)))
+          })
+####============================================================
+##  intensityOrderedByMz
+##
+##  Return the intensity values ordered by mz. That way, the mz
+##  values returned by mzOrdered are in-sync (i.e. ordered in the
+##  same way) with the intensity values.
+####------------------------------------------------------------
+setMethod("intensityOrderedByMz", "MSdata",
+          function(object){
+              idx <- order(mz(object))
+              return(intensity(object)[idx])
+          })
+####============================================================
+##  intensityOrderedByRtime
+##
+##  Return the intensity values ordered by retention time. That way,
+##  the mz values returned by mzOrdered are in-sync (i.e. ordered in
+##  the same way) with the intensity values.
+####------------------------------------------------------------
+setMethod("intensityOrderedByRtime", "MSdata",
+          function(object){
+              idx <- order(rtime(object))
+              return(intensity(object)[idx])
+          })

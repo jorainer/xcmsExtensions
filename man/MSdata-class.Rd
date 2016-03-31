@@ -23,6 +23,10 @@
 \alias{getChromatogram,MSdata-method}
 \alias{plotChromatogram}
 \alias{plotChromatogram,MSdata-method}
+\alias{getSpectrum}
+\alias{getSpectrum,MSdata-method}
+\alias{plotSpectrum}
+\alias{plotSpectrum,MSdata-method}
 
 
 \title{Simple MS data object}
@@ -43,6 +47,9 @@
 
 \S4method{getChromatogram}{MSdata}(object, FUN=max, bins=NULL,
                                    nbin=NULL, binSize=NULL, ...)
+
+\S4method{getSpectrum}{MSdata}(object, FUN=max, bins=NULL,
+                               nbin=NULL, binSize=NULL, ...)
 
 \S4method{intensity}{MSdata}(object)
 
@@ -66,6 +73,12 @@ MSdata(mz, rtime, intensity, mslevel=1)
                                     2), collapse="-"),
               xlab="Retention time", ylab="Intensity", ...)
 
+\S4method{plotSpectrum}{MSdata}(object, FUN=max, bins=NULL,
+                                nbin=NULL, binSize=NULL, add=FALSE,
+                                main=paste(format(rtrange(object),
+                                    2), collapse="-"),
+              xlab="M/Z", ylab="Intensity", ...)
+
 \S4method{rtime}{MSdata}(object, return.type="numeric")
 
 \S4method{rtime}{MSdata}(object) <- value
@@ -78,26 +91,29 @@ MSdata(mz, rtime, intensity, mslevel=1)
   (in alphabetic order)
 
   \item{add}{
-    For \code{plotChromatogram}: if the plot should be added to an
+    For \code{plotChromatogram} and \code{plotSpectrum}: if the plot should be added to an
     existing plot.
   }
 
   \item{bins}{
-    For \code{getChromatogram} and \code{plotChromatogram}: Numeric
-    vector specifying the bins to bin the retention time. See
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}:
+    Numeric vector specifying the bins to bin the retention time. See
     \code{getChromatogram} method description for details on the
     binning.
   }
 
   \item{binSize}{
-    For \code{getChromatogram} and \code{plotChromatogram}: numeric
-    (length 1) specifying the bin width/size. See
+     For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}:
+    Numeric (length 1) specifying the bin width/size. See
     \code{getChromatogram} method description for details on the
     binning.
   }
 
   \item{FUN}{
-    For \code{getChromatogram} and \code{plotChromatogram}: function
+     For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: function
     that should be used to aggregate intensities within a bin. By
     default the largest intensity within a bin is selected. See
     \code{getChromatogram} method description for details on the
@@ -109,7 +125,7 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{main}{
-    For \code{plotChromatogram}: the title for the plot.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the title for the plot.
   }
 
   \item{mslevel}{
@@ -126,7 +142,8 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{nbin}{
-    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: numeric
     (length 1) specifying the number of bins in which the retention time
     range should be binned. See \code{getChromatogram} method
     description for details on the binning.
@@ -162,15 +179,15 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{xlab}{
-    For \code{plotChromatogram}: the label for the x-axis.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the label for the x-axis.
   }
 
   \item{ylab}{
-    For \code{plotChromatogram}: the label for the y-axis.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the label for the y-axis.
   }
 
   \item{...}{
-    For \code{plotChromatogram}: additional graphical properties to be
+    For \code{plotChromatogram} and \code{plotSpectrum}: additional graphical properties to be
     passed to the \code{plot} function.
 
     For all other methods: not used.
@@ -242,7 +259,10 @@ MSdata(mz, rtime, intensity, mslevel=1)
       Extracts the chromatogram from the \code{MSdata} (i.e. intensities
       along the retention time dimension). The method returns a numeric
       matrix with two columns, \code{"rtime"} and
-      \code{"intensity"}. Since the \code{MSdata} is in principle
+      \code{"intensity"}, the rows being ordered increasingly by
+      retention time.
+
+      Since the \code{MSdata} is in principle
       3-dimensional (intensities in the m/z - rt space), values have to
       be aggregated in the m/z dimension. By default the method only
       aggregates intensities along the m/z dimension with the same
@@ -252,7 +272,7 @@ MSdata(mz, rtime, intensity, mslevel=1)
       all intensities falling into one bin (i.e. retention time within
       the bin and all intensities along the m/z dimension present in the
       \code{MSdata}) are aggregated using the function \code{FUN}, which
-      by default just sums up all intensities.
+      by default just selects the maximal signal in each bin.
 
       The binning in rt-dimension is performed as follows: if
       \code{nbins} is specified, the range of retention times
@@ -272,6 +292,24 @@ MSdata(mz, rtime, intensity, mslevel=1)
       run, this would correspond to a \emph{base peak chromatogram}
       (BPC), while using \code{FUN=sum} would result in an \emph{total
       ion chromatogram} (TIC) [Smith 2014].
+    }
+
+    \code{getSpectrum}{
+      Extracts the spectrum from the \code{MSdata} (i.e. intensities
+      along the M/Z dimension, usually for a single retention time or a
+      small retention time range). The method returns a numeric matrix
+      with two columns, \code{"mz"} and \code{"intensity"} with the rows
+      being increasingly ordered by the mz value.
+
+      By default, the method aggregates all intensity values along the
+      retention time dimension (available in the \code{MSdata} object)
+      for a single M/Zvalue. The argument \code{FUN} allows to specify
+      the function that should be used to aggregate intensities.
+      In addition, the arguments \code{bins}, \code{nbin} and
+      \code{binSize} allow to bin M/Z values and thus to aggregate also
+      intensity values of M/Z values falling within a certain bin. See
+      the documentation of the \code{getChromatogram} method above for
+      more details.
     }
 
     \item{intensity, intensity<-}{
@@ -370,7 +408,7 @@ head(as.matrix(mssub))
 
 
 ## Extracting the chromatogram from an MSdata.
-## Defining the mz and rt range. The are corresponds approx. to the
+## Defining the mz and rt ranges. These correspond approx. to the
 ## peak in the xcms vignette (Figure 4).
 mzr <- c(302, 302.5)
 rtr <- c(2500, 2700)
@@ -383,6 +421,7 @@ length(unique(rtime(msd)))
 ## Thus, we have some intensities with the same retention time (but different
 ## m/z).
 
+####-------------
 ## Extracting the chromatogram.
 chr <- getChromatogram(msd)
 nrow(chr)
@@ -403,8 +442,35 @@ plotChromatogram(msd, FUN=max, nbin=50, add=TRUE, col="blue", type="b")
 
 ## Generating the base peak chromatogram (BPC) and the total ion chromatogram (TIC)
 fulld <- msData(xraw)
+par(mfrow=c(1, 2))
 plotChromatogram(fulld, FUN=max, type="l", main="BPC")
 plotChromatogram(fulld, FUN=sum, type="l", main="TIC")
+
+
+####-------------
+## Extract a spectrum.
+## Similar to the getChromatogram example above we can simply extract a
+## spectrum using the getSpectrum method.
+spc <- getSpectrum(msd)
+nrow(spc)
+## The spectrum for this peak is rather small, which is not surprising, since
+## we restricted the m/z range. To get the spectrum for the compound corresponding
+## to the peak, we restrict a narrow retention time range around the peak, and a
+## larget mz range.
+rtr <- c(2560, 2640)
+mzr <- c(300, 330)
+## Get the "slice" of MS data defined by this ranges
+msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+## Get the (unbinned) spectrum; intensities with the same m/z but different
+## retention times are aggregated (i.e. the maximal signal is taken).
+spc <- getSpectrum(msd)
+nrow(spc)
+
+## Next we plot the chromatogram and the spectrum for the MS data slice.
+par(mfrow=c(1, 2))
+plotChromatogram(msd, type="l")
+plotSpectrum(msd, type="l")
 
 }
 \keyword{classes}

@@ -3,7 +3,10 @@
 \alias{scantimes}
 \alias{scantimes,xcmsRaw-method}
 \alias{getData}
-\alias{getData,xcmsRaw,ANY-method}
+\alias{getData,xcmsRaw-method}
+\alias{getData,xcmsRaw,MatrixOrNull,MatrixOrNull,MatrixOrNull-method}
+\alias{getData,xcmsRaw,NumericOrNull,NumericOrNull,NumericOrNull-method}
+\alias{msMap,xcmsRaw-method}
 
 \title{Various utility functions for xcmsRaw objects}
 
@@ -17,35 +20,56 @@
 
 \S4method{getData}{xcmsRaw}(x, mzrange=NULL, rtrange=NULL, intrange=NULL)
 
+\S4method{msMap}{xcmsRaw}(object, mzrange=NULL, rtrange=NULL,
+                          intrange=NULL, resMz=0.005, zeroIsNA=FALSE, ...)
+
 }
 \arguments{
 
   (in alphabetic order)
 
+  \item{intrange}{
+    For \code{getData}: an optional numeric vector (of length 2)
+    to subset by intensity range. Alternatively a numeric matrix with
+    two columns, each row specifying an intensity range to subset the
+    data. If \code{NULL} the full intensity range will be used.
+  }
+
   \item{mzrange}{
     For \code{getData}: an optional numeric vector (of length 2)
     to subset the data by m/z range. Alternatively a numeric matrix with
-    two columns, each row specifying a m/z range to subset the data.
+    two columns, each row specifying a m/z range to subset the data. If
+    \code{NULL} the full m/z range will be used.
+  }
+
+  \item{object}{
+    An \code{xcmsRaw} object.
+  }
+
+  \item{resMz}{
+    A numeric of length 1 specifying the resolution along the M/Z
+    range. Intensities along the M/Z dimension will be aggregated into
+    bins of this size.
   }
 
   \item{rtrange}{
     For \code{getData}: an optional numeric vector (of length 2)
     to subset by retention time range. Alternatively a numeric matrix with
     two columns, each row specifying a retention time range to subset
-    the data.
-  }
-
-  \item{intrange}{
-    For \code{getData}: an optional numeric vector (of length 2)
-    to subset by intensity range. Alternatively a numeric matrix with
-    two columns, each row specifying an intensity range to subset the
-    data.
+    the data. If \code{NULL} the full retention time range will be used.
   }
 
   \item{x}{
     An \code{xcmsRaw} object.
   }
 
+  \item{zeroIsNA}{
+    Set 0 intensities to \code{NA}.
+  }
+
+  \item{...}{
+    Presently not used.
+  }
 }
 \section{Accessing data in \code{xcmsRaw} objects}{
 
@@ -67,6 +91,15 @@
       \code{rtrange} or \code{intrange} is a matrix, the method returns
       a \code{list} of matrices, each representing the subset defined by
       one of the rows of the input matrix (matrices).
+    }
+
+    \item{msMap}{
+      Extracts intensities from the two-dimensional area (slice) defined
+      by \code{mzrange} and \code{rtrange} and returns it as a
+      \code{\link[MSnbase]{MSmap}} object (i.e. a matrix-like
+      two-dimensional representation of the slice). The intensities
+      along the M/Z range will be aggregated in bins of size
+      \code{resMz}.
     }
 
     \item{scantimes}{

@@ -6,6 +6,8 @@ NEW FEATURES:
     o msSlice for xcmsSet objects.
     o getChromatogram, plotChromatogram, getSpectrum and plotSpectrum methods
       for MSdata.
+    o Add vignette.
+
 
 CHANGES IN VERSION 0.0.1
 ------------------------

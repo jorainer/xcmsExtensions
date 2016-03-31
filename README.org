@@ -18,4 +18,4 @@ Using the =devtools= R-package:
 #+BEGIN_SRC R
   library(devtools)
   install_github("jotsetung/xcmsExtensions")
-#+END:SRC
+#+END_SRC

@@ -14,6 +14,9 @@
 \alias{rtrange,MSslice-method}
 \alias{msData,MSslice-method}
 \alias{length,MSslice-method}
+\alias{getChromatogram,MSslice-method}
+\alias{plotChromatogram,MSslice-method}
+
 
 \title{MS data subsets of several samples}
 
@@ -37,6 +40,9 @@
 }
 \usage{
 
+\S4method{getChromatogram}{MSslice}(object, FUN=max, bins=NULL,
+                           nbin=NULL, binSize=NULL, ...)
+
 \S4method{intrange}{MSslice}(object)
 
 \S4method{length}{MSslice}(x)
@@ -56,12 +62,41 @@ MSslice(...)
 
 \S4method{mzrange}{MSslice}(object)
 
+\S4method{plotChromatogram}{MSslice}(object, FUN=max, bins=NULL,
+                            nbin=NULL, binSize=NULL,
+                            main=paste(format(mzrange(object), 2),
+                            collapse="-"), xlab="Retention time",
+                            ylab="Intensity", col=1, lty=1, ...)
+
 \S4method{rtrange}{MSslice}(object)
 
 }
 \arguments{
 
   (in alphabetic order)
+
+
+  \item{bins}{
+    For \code{getChromatogram} and \code{plotChromatogram}: Numeric
+    vector specifying the bins to bin the retention time. See
+    \code{getChromatogram} method description for \code{\link{MSdata}}
+    objects for more details on the binning.
+  }
+
+  \item{binSize}{
+    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    (length 1) specifying the bin width/size. See
+    \code{getChromatogram} method description for \code{\link{MSdata}}
+    objects for more details on the binning.
+  }
+
+  \item{FUN}{
+    For \code{getChromatogram} and \code{plotChromatogram}: function
+    that should be used to aggregate intensities within a bin. By
+    default the largest intensity within a bin is selected. See
+    \code{getChromatogram} method description for \code{\link{MSdata}}
+    objects for more details on the binning.
+  }
 
   \item{BPPARAM}{
     Parallel processing parameters; see
@@ -73,8 +108,32 @@ MSslice(...)
     generate the object.
   }
 
+  \item{col}{
+    For \code{plotChromatogram}: a single color or vector specifying
+    colors for each sample/\code{MSdata} object in the \code{MSslice}.
+  }
+
+  \item{lty}{
+    For \code{plotChromatogram}: a numeric specifying the line type for
+    each sample/\code{MSdata} object in the \code{MSslice}; if
+    \code{lty} has length of 1, this line type will be used for all
+    lines.
+  }
+
+  \item{main}{
+    For \code{plotChromatogram}: the title of the plot.
+  }
+
   \item{mzrange}{
     A numeric vector defining the m/z-value range of the slice.
+  }
+
+  \item{nbin}{
+    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    (length 1) specifying the number of bins in which the retention time
+    range should be binned. See \code{getChromatogram} method
+    description for \code{\link{MSdata}} objects for more details on the
+    binning.
   }
 
   \item{object}{
@@ -99,9 +158,21 @@ MSslice(...)
     For \code{length}: an \code{MSslice} object.
   }
 
+  \item{xlab}{
+    For \code{plotChromatogram}: the label for the x-axis.
+  }
+
+  \item{ylab}{
+    For \code{plotChromatogram}: the label for the y-axis.
+  }
+
   \item{...}{
     For \code{MSslice}: \code{\link{MSdata}} objects for the
     \code{MSslice} object.
+
+    For \code{plotChromatogram}: additional graphical parameters to be
+    passed down to the base plot function.
+
     Ignored for all other methods.
   }
 
@@ -182,7 +253,14 @@ MSslice(...)
       the samples. Each row will only contain a numeric value for a
       sample in which a signal was measured for that specific retention
       time. In most instances it will be better to specify \code{nbin}
-      or \code{binSize}, to bin
+      or \code{binSize}, to bin values also along the retention time
+      dimension. Ideally, the binning should not be too coarse, but also
+      not too detailed (in which case the matrix will again be
+      relatively sparse); a binning with a \code{binSize=1} (i.e. one
+      second), or slightly smaller, might be OK in most instances.
+
+      For more details on the binning see the help for the
+      \code{getChromatogram} method of \code{\link{MSdata}} objects.
     }
 
     \item{intrange}{
@@ -223,6 +301,11 @@ MSslice(...)
 \section{Data visualizations}{
   \describe{
     \item{plotChromatogram}{
+      Plots the chromatogram of the rt-m/z slice across all of the
+      \code{MSdata} objects (i.e. samples). The arguments \code{col} and
+      \code{lty} can be used to use a different color for each line
+      (i.e. sample) or a different line type. See description of the
+      \code{getChromatogram} for details on the other parameters.
     }
   }
 }
@@ -263,6 +346,46 @@ intrange(mss)
 ## Extract the list of MSdata objects
 msData(mss)
 
+## Extract the chromatogram of a m/z-rt slice across all samples.
+## Defining the mz and rt ranges for the peak in the xcms
+## vignette (Figure 4).
+mzr <- c(302, 302.5)
+rtr <- c(2500, 2700)
+mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
+
+## We're getting a sparse matrix if we're not binning along the rt-dimension,
+## since the retention times of the individual data points are slightly different
+## between the samples:
+head(getChromatogram(mss))
+
+## We're next binning the values in retention time-bins of size 1 (1 second). By default
+## (with FUN=max), the maximal signal is used for each bin.
+chrM <- getChromatogram(mss, binSize=1)
+dim(chrM)
+head(chrM)
+
+## We can also create an image from this matrix. Each column represents the chromatogram
+## from one sample, each row one retention time bin with the intensity being color coded.
+image(t(chrM))
+
+## Next we plot the chromatogram of the slice across all samples.
+## Without any binning:
+plotChromatogram(mss, col="#00000080", type="l")
+
+## And with binning.
+plotChromatogram(mss, binSize=1, col="#00000080", type="l")
+
+## Extracting the full MS data from the xcmsSet to create base peak chromatogram (BPC)
+## and total ion chromatogram (TIC) plot of all samples.
+msFull <- msSlice(xset)
+
+## Base peak chromatogram with 1 second binning
+plotChromatogram(msFull, binSize=1, col="#00000080", type="l")
+
+## Total ion chromatogram with 1 second binning
+plotChromatogram(msFull, FUN=sum, binSize=1, col="#00000080", type="l")
+
+
 ## We can also extract a slice from an xcmsRaw object, which will then
 ## contain the data only of that individual sample. Without specifying an
 ## mzrange and rtrange we extract the full data.
@@ -276,7 +399,7 @@ msSlice(msd)
 
 ## Extracting the MSdata from the second sample and passing both to the
 ## MSslice constructor to generate a two-sample MSslice object.
-msd2 <- msData(getXcmsRaw( xset, 2))
+msd2 <- msData(getXcmsRaw(xset, 2))
 MSslice(msd, msd2)
 
 }

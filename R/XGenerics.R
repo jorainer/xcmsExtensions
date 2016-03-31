@@ -42,3 +42,14 @@ setGeneric("rtranges", function(object, ...)
     standardGeneric("rtranges"))
 setGeneric("intranges", function(object, ...)
     standardGeneric("intranges"))
+
+####============================================================
+##  internal methods.
+setGeneric("rtimeOrdered", function(object, ...)
+    standardGeneric("rtimeOrdered"))
+setGeneric("mzOrdered", function(object, ...)
+    standardGeneric("mzOrdered"))
+setGeneric("intensityOrderedByMz", function(object, ...)
+    standardGeneric("intensityOrderedByMz"))
+setGeneric("intensityOrderedByRtime", function(object, ...)
+    standardGeneric("intensityOrderedByRtime"))

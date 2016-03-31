@@ -6,7 +6,7 @@ Author: J. Rainer
 Maintainer: Johannes Rainer <johannes.rainer@eurac.edu>
 Imports: BiocGenerics, utils, ProtGenerics, S4Vectors, BiocParallel
 Depends: methods, xcms (>= 1.47.2), MSnbase
-Suggests: BiocStyle, knitr, RUnit, rmarkdown
+Suggests: BiocStyle, knitr, RUnit, rmarkdown, faahKO
 VignetteBuilder: knitr
 Description: Collection of methods and functions extending the functionality of
 	     the xcms Bioconductor package.

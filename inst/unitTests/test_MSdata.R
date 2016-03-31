@@ -224,3 +224,31 @@ test_getChromatogram <- function(){
 }
 
 
+test_getSpectrum <- function(){
+    do.plot <- FALSE
+    ## Peak would be around rt 2620-2625
+    mzr <- c(300, 600)
+    rtr <- c(2560, 2625)
+    ## Check if we could get the spectrum of that peak.
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    Test <- xcmsExtensions:::.getSpec(msd)
+    spec <- getSpectrum(msd)
+    ## mz has to be ordered increasing
+    checkEquals(order(spec[, 1]), 1:nrow(spec))
+    if(do.plot){
+        par(mfrow=c(1, 2))
+        plotChromatogram(msd, type="l")
+        plotSpectrum(msd, type="l")
+        ## At least looks fine
+    }
+    ## Now doing a binning along the M/Z too; with binSize=1
+    specB <- getSpectrum(msd, binSize=1)
+    checkEquals(order(specB[, 1]), 1:nrow(specB))
+    ## Check that the binSize is 1.
+    checkTrue(all(diff(as.numeric(rownames(specB))) == 1))
+    ## Do the plot with and without binning.
+    if(do.plot){
+        plotSpectrum(msd, type="l")
+        plotSpectrum(msd, binSize=1, type="l", col="blue")
+    }
+}

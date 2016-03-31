@@ -1,0 +1,351 @@
+---
+title: "Extensions to the xcms package"
+graphics: yes
+output:
+  BiocStyle::html_document:
+    toc_depth: 2
+  BiocStyle::pdf_document:
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Extensions to the xcms package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{xcmsExtensions,xcms,faahKO}
+  %\VignettePackage{xcmsExtensions}
+  %\VignetteKeywords{MassSpectrometry, Metabolomics}
+bibliography: references.bib
+csl: biomed-central.csl
+references:
+- id: dummy
+  title: no title
+  author:
+  - family: noname
+    given: noname
+---
+
+# Introduction
+
+This package provides some functions and utilities extending the functionality
+of the `xcms` Bioconductor package. These functions aim to provide a better
+integration into the Bioconductor framework (using as much as possible methods
+defined in `ProtGenerics` and methods and classes from `MSnbase`; and also
+following Bioconductor's coding- and function-naming conventions). Some of the
+concepts and definitions used in this package are from [@Smith:2014di].
+
+# New objects introduced by `xcmsExtensions`
+
+To enable a more streamlined and user-friendly access to MS data, the
+`xcmsExtensions` package defines the following objects. Some of these are
+redundant in functionality and data content with objects in `xcms` that do
+however, in most cases, not provide simple access to all of the data or have
+other limitations. The `xcms` package defines for example the `xcmsEIC` class
+and the `getEIC` method to extract ion chromatograms from an `xcmsSet`
+object. The EIC, by default, is however extracted from the *profile* matrix that
+represents intensity values aggregated in equal-spaced bins in m/z space. In
+addition there exists the `rawEIC` method that extracts m/z, scan index and
+corresponding intensity values from the *raw* data, but does not return these as
+an `xcmsEIC` object (and does also not report the actual retention time). The
+`xcmsExtensions` package tries to solve some of these possible confusions by the
+introduction of the below listed classes and their methods.
+
+-   `MSdata`: this is the basic object holding retention time (rt), m/z and
+    measured intensities for the rt-mz tuples. To reduce the memory footprint, the
+    retention time is internally stored as an `Rle` object, the mz values as
+    `numeric` and the intensities as `integer`. By design this object is thought
+    to hold only MS data for a subset of a whole MS run, but in principle, it
+    could also store all the detected intensities for all m/z and retention/scan
+    times. In this latter case the object is somewhat redundant with the `xcmsRaw`
+    object, but provides an easier extraction of paired and matched rt, mz and
+    intensity values (using the `msData` method).
+
+-   `MSslice`: represents a *wrapper* object for multiple `MSdata` objects, all
+    defining the same area (slice) in the m/z-rt space, but across several
+    samples. By design, a `MSslice` object is thought to hold data for the same
+    slice in each of the samples of an `xcmsSet` object. Note also that, depending
+    on the data, each `MSdata` object might have a slightly different range of m/z
+    and rt values.
+
+-   `MSsliceList`: a list of several `MSslice` object. If e.g. different slices
+    defined by different mz/rt ranges from a single sample (e.g. from a single
+    `xcmsRaw` object), these will be stored and returned in a `MSsliceList`.
+
+# Extracting MS data
+
+In this section we show some examples how (raw or binned) data of one or several
+MS runs can be extracted from `xcmsRaw`, `xcmsSet`, `MSsliceList`, `MSslice` or
+`MSdata` objects.
+
+First we load the example data set from the `xcms` package.
+
+```{r results='silent', message=FALSE}
+library(xcmsExtensions)
+library(faahKO)
+xset <- faahko
+```
+
+As described in the previous section, an `MSdata` object simply stores
+intensities for rt-m/z tuples and corresponds thus to some degree to a `xcmsRaw`
+object from the `xcms` package. Below we are extracting all of the data
+(retention time, m/z and intensity) values from one of the raw files of the
+`faahko` data set.
+
+```{r warning=FALSE, message=FALSE}
+## Extract the full data from an xcmsRaw object.
+xraw <- getXcmsRaw(xset, 1)
+msFull <- msData(xraw)
+msFull
+```
+
+Alternatively, we could extract only a portion of the data by specifying an mz
+value range and an retention time range with the `mzrange` and `rtrange`
+arguments.
+
+```{r warning=FALSE, message=FALSE}
+## Extract only a subset of the data (from a slice in M/Z-rt space)
+msSub <- msData(xraw, mzrange=c(300, 350), rtrange=c(2700, 2900))
+msSub
+```
+
+We can extract the retention time, mz values and intensity values using the
+`rtime`, `mz` and `intensity` methods.
+
+```{r }
+## Get the retention time values
+head(rtime(msSub))
+## Get the mz values
+head(mz(msSub))
+## Get the intensity values
+head(intensity(msSub))
+```
+
+We could also convert the `MSdata` into a numeric matrix.
+
+```{r }
+head(as.matrix(msSub))
+```
+
+A chromatogram (i.e. intensities along retention time) can be extracted from the
+`MSdata` object using the `getChromatogram` method, or plotted using the
+`plotChromatogram` method. In its default setting, the `getChromatogram` method
+extracts all intensity and retention time pairs in the `MSdata`, aggregating
+intensities with the exact same retention time. The argument `FUN` of the method
+allows to specify the function to aggregate the intensities. In the default
+setting (`FUN` being `max`) only the maximal intensity for a retention time is
+selected. Below we extract the chromatogram for the data sub-set.
+
+```{r warning=FALSE}
+## Extract the (full) chromatogram; the maximal intensity will be selected
+## if two or more values have the same retention time. Otherwise, the data
+## will be returnes /as.is/
+chr <- getChromatogram(msSub)
+head(chr)
+nrow(chr)
+```
+
+Sometimes it might also be useful to bin the data in retention time dimension
+and aggregate the values within these bins as well. The arguments `nbin` or
+`binSize` allow to specify either the number of bins along the retention time
+axis, or the size of these bins (with the `bins` argument it would be even
+possible to provide the actual bins, but in most instances the `nbin` or
+`binSize` arguments should suffice). This binning allows to reduce the amount of
+data and to group intensities in discrete, equal sized, bins. All intensities
+(along the full M/Z range present in the `MSdata` object) with a retention times
+that fall within a bin are aggregated with the `FUN` function. Below we bin the
+data of the sub-set into 30 bins along the retention time range.
+
+```{r xcmse-bin-chromatogram}
+## Bin the values in 30 bins along the retention time range of the MSdata
+chrB <- getChromatogram(msSub, nbin=30)
+head(chrB)
+nrow(chrB)
+```
+
+In the example above we the matrix representing the extracted chromatogram has
+30 rows, each row representing the aggregated intensities for each bin. Note
+that the matrix could also have less than 30 rows, e.g. if no values would be
+available for a bin.
+
+We next plot the chromatogram, first without binning and add the binned
+chromatogram to that plot.
+
+```{r xcmsExtensions-chromatogram-plot, fig.align='center', fig.width=7, fig.height=4, fig.cap="Extracted chromatogram for the data sub set. With (blue) and without (black) binning along the retention time axis."}
+## Plot the chromatogram.
+plotChromatogram(msSub, type="l")
+## Add the binned chromatogram to the plot.
+plotChromatogram(msSub, type="l", col="blue", add=TRUE, nbin=30)
+```
+
+With this methods we can also extract the base peak chromatogram
+[@Smith:2014di] (BPC, the maximal intensity along the full M/Z range for the
+same retention time) or the total ion chromatogram (TIC, the sum of all
+intensities along the M/Z dimension for the same retention time). We plot these
+two for the `MSdata` representing the full data of the first MS run in the
+experiment. For the former we can just use the default setting for the `FUN`
+method, for the latter we change `FUN` to `sum`.
+
+```{r xcmsExtensions-chromatogram-plot-bpc-tic, results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Base peak chromatogram (BPC) and total ion chromatogram (TIC) for the full data."}
+par(mfrow=c(1, 2))
+## Plot the BPC.
+plotChromatogram(msFull, type="l", main="BPC")
+## And the TIC.
+plotChromatogram(msFull, type="l", FUN=sum, main="TIC")
+```
+
+Analogous to the `getChromatogram`, the `getSpectrum` method allows to extract a
+spectrum (i.e. intensities, eventually aggregated for identical retention times,
+along the M/Z dimension) from an `MSdata` object, enabling also an optional
+binning of values in M/Z dimension. In the example below we refine the MS data
+slice for the peak from the example above and plot the chromatogram as well as
+the spectrum for it.
+
+```{r xcmsExtensions-chromatogram-and-spectrum, results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Chromatogram and spectrum for the peak."}
+rtr <- c(2550, 2700)
+mzr <- c(300, 330)
+## Extrac the MS data slice
+msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+par(mfrow=c(1, 2))
+## Plot the chromatogram
+plotChromatogram(msd, type="l")
+## And the spectrum
+plotSpectrum(msd, type="l")
+```
+
+The `MSdata` is thus the basic object to store MS data of a single MS
+run/sample. Data from different MS runs/samples is represented by, and can be
+stored into, a `MSslice` object. This object is supposed to store the data from
+the same slice from the 2-dimensional (m/z over rt) MS data across several
+samples. In the example below we define a slice representing one of the peaks in
+the `faahko` data set shown in Figure 4 in the `xcms` vignette.
+
+```{r warning=FALSE, message=FALSE}
+## Extract the chromatogram of a m/z-rt slice across all samples.
+## Defining the mz and rt ranges for the peak in the xcms
+## vignette (Figure 4).
+mzr <- c(300, 330)
+rtr <- c(2550, 2700)
+mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
+mss
+```
+
+Alternatively we could extract an `MSslice` object representing the full MS data
+of all samples of an experiment by simply not providing an `rtrange` or
+`mzrange`.
+
+# Alternative way to access data in `xcmsRaw` objects
+
+The `getData` method is an alternative method that can be used to extract paired
+retention time, m/z and intensity values from an `xcmsRaw` object. The advantage
+over the `msData` method described in the previous method is, that it allows
+also a sub-setting by intensities.
+
+Loading the libraries and the `xcmsRaw` object.
+
+```{r results='silent', message=FALSE}
+library(xcmsExtensions)
+library(faahKO)
+xset <- faahko
+## Getting the raw data for the first data file.
+xraw <- getXcmsRaw(xset)
+```
+
+The raw data of an LC/GC-MS run is stored in an `xcmsRaw` object, more
+specifically, in the slots `@scantime`, `@env$mz`, `@env$intensity`. Extracting
+data from such a `xcmsRaw` object can however be somewhat cumbersome, especially
+when we want to extract only (eventually multiple) sub-sets of data. Also, for
+memory reasons, the length of the `@scantime` slot does not match the length of
+the `@env$mz` slot as it stores only the distinct scan/measurement time points.
+We can however use the `scantimes` method to extract a numeric vector that
+matches the length of the `@env$mz` and `@env$intensity` slots, thus specifying
+the scan time for each of these data points.
+
+```{r }
+## What's the length of data points we have?
+length(xraw@env$mz)
+## And the length of scan times?
+length(xraw@scantime)
+
+## Extract the scan times matching the individual data points.
+head(scantimes(xraw))
+length(scantimes(xraw))
+```
+
+The data in an R-object should however not be accessed directly (i.e. accessing
+the slots), but ideally through an *getter* methods. Thus, to extract the raw
+data from an `xcmsRaw` object we can use the `getData` method. We could also use
+the `rawMat` method defined in the `xcms` package, but the `getData` should be
+preferably used, as it is also faster and extracts always correct sub-sets if
+sub-setting is done on retention time ranges.
+
+```{r }
+## Get the full data from the object
+dim(getData(xraw))
+head(getData(xraw))
+
+## Extract only a subset of data specified by an retention time range.
+datmat <- getData(xraw, rtrange=c(2509, 2530))
+dim(datmat)
+
+## We can also specify both, a retention time and a mz range.
+datmat <- getData(xraw, rtrange=c(2509, 2530), mzrange=c(301, 302.003))
+```
+
+Besides sub-setting by retention time and m/z ranges it is also possible to
+extract data sub-sets defined by an intensity range.
+
+```{r }
+## Use and intensity range: all with a signal higher than 300
+```
+
+And finally, we can also specify multiple retention time and or m/z (or
+intensity) ranges to extract multiple sub-sets.
+
+```{r }
+```
+
+Note that, if we load an `xcmsRaw` object for a `xcmsSet` object after having
+applied retention time correction, the retention times (scan time) we extract
+from that object will correspond to the corrected ones.
+
+```{r }
+## Grouping (alignment) of peaks/features
+xset <- group(xset)
+## Retention time correction
+xset <- retcor(xset)
+## Extract "raw" data; corrected retention times will be applied to the raw data.
+xraw2 <- getXcmsRaw(xset)
+```
+
+Extracting data by directly accessing the slots of an R-object is however no
+
+# Standardization of names etc
+
+We base the naming convention of methods classes etc on the review from Smith et
+al. [@Smith:2014di] and will implement as many methods and classes as
+possible (and meaningful) from the `ProtGenerics` and `MSnbase` packages.
+
+-   **Definitions**
+    -   **chromatogram**: intensity *vs* (retention) time of the analytes.
+    -   **(mass) spectrum**: intensity *vs* m/z; all points with a single retention time
+        value (MS1, can be measured by MSMS again -> MS2).
+    -   **total ion spectrum (TIS)**: sum of all ion counts (intensity) with one RT
+        (i.e. the sum of all spectra). Basically the sum of the signal per m/z over
+        all RT resulting in intensity *vs* m/z (intensity *vs* m/z).
+    -   **total ion chromatogram (TIC)**: sum of all ion chromatograms, i.e. sum of ion
+        counts per RT over all m/z (intensity *vs* RT).
+    -   **extracted ion chromatogram (XIC)**: chromatogram (intensity *vs* RT) for a
+        fixed m/z.
+    -   **base peak chromatogram (BPC)**: most intense signal across m/z for each RT
+        (intensity *vs* RT).
+    -   **isotope trace**: signal produced by a single ion of a single analyte at a
+        particular charge state, fixed m/z (intensity *vs* RT for a fixed m/z). Sort
+        of a peak in RT for a fixed m/z.
+    -   **isotopic envelope trace** a.k.a. **feature**: group of isotopic traces of a
+        single analyte at a particular charge state (intensity *vs* RT *vs*
+        m/z). Represents all intensities/peaks in a RT, m/z region.
+
+-   `ProtGenerics`
+
+-   `MSnbase`
+    -   `MSmap` object.
+
+# References

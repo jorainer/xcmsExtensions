@@ -11,7 +11,7 @@ before_install:
 
 install:
   - ./pkg-build.sh install_bioc_deps
-  - ./pkg-build.sh install_github jotsetung/mirhostgenes jotsetung/MirhostDb.Hsapiens.v75.v20 jimhester/covr
+  - ./pkg-build.sh install_github jimhester/covr
 
 script:
   - ./pkg-build.sh run_tests
@@ -35,6 +35,6 @@ notifications:
 
 env:
   global:
-      - RVERSION=devel BIOC_USE_DEVEL=TRUE _R_CHECK_FORCE_SUGGESTS_=FALSE CODECOV_TOKEN=877c933d-371d-427d-a4ad-a3aa7513fab5 COVERAGE=true
+      - RVERSION=devel BIOC_USE_DEVEL=TRUE _R_CHECK_FORCE_SUGGESTS_=FALSE COVERAGE=true
 
 

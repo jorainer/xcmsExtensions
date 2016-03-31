@@ -105,9 +105,10 @@ http://stackoverflow.com/questions/22527867/adding-svn-remote-to-existing-git-re
 
 This package provides some functions and utilities extending the functionality
 of the =xcms= Bioconductor package. These functions aim to provide a better
-integration into the Bioconductor framework (following their coding- and
-function-naming conventions). Some of the concepts used in this package and
-definitions are from \cite{Smith:2014di}.
+integration into the Bioconductor framework (using as much as possible methods
+defined in =ProtGenerics= and methods and classes from =MSnbase=; and also
+following Bioconductor's coding- and function-naming conventions). Some of the
+concepts and definitions used in this package are from \cite{Smith:2014di}.
 
 
 * New objects introduced by =xcmsExtensions=
@@ -153,6 +154,169 @@ In this section we show some examples how (raw or binned) data of one or several
 MS runs can be extracted from =xcmsRaw=, =xcmsSet=, =MSsliceList=, =MSslice= or
 =MSdata= objects.
 
+First we load the example data set from the =xcms= package.
+
+#+BEGIN_SRC R :ravel results='silent', message=FALSE
+  library(xcmsExtensions)
+  library(faahKO)
+  xset <- faahko
+#+END_SRC
+
+As described in the previous section, an =MSdata= object simply stores
+intensities for rt-m/z tuples and corresponds thus to some degree to a =xcmsRaw=
+object from the =xcms= package. Below we are extracting all of the data
+(retention time, m/z and intensity) values from one of the raw files of the
+=faahko= data set.
+
+#+BEGIN_SRC R :ravel warning=FALSE, message=FALSE
+  ## Extract the full data from an xcmsRaw object.
+  xraw <- getXcmsRaw(xset, 1)
+  msFull <- msData(xraw)
+  msFull
+#+END_SRC
+
+Alternatively, we could extract only a portion of the data by specifying an mz
+value range and an retention time range with the =mzrange= and =rtrange=
+arguments.
+
+#+BEGIN_SRC R :ravel warning=FALSE, message=FALSE
+  ## Extract only a subset of the data (from a slice in M/Z-rt space)
+  msSub <- msData(xraw, mzrange=c(300, 350), rtrange=c(2700, 2900))
+  msSub
+#+END_SRC
+
+We can extract the retention time, mz values and intensity values using the
+=rtime=, =mz= and =intensity= methods.
+
+#+BEGIN_SRC R
+  ## Get the retention time values
+  head(rtime(msSub))
+  ## Get the mz values
+  head(mz(msSub))
+  ## Get the intensity values
+  head(intensity(msSub))
+#+END_SRC
+
+We could also convert the =MSdata= into a numeric matrix.
+
+#+BEGIN_SRC R
+  head(as.matrix(msSub))
+#+END_SRC
+
+# Extract the chromatogram, plot the total ion chromatogram and the base peak
+# chromatogram.
+
+A chromatogram (i.e. intensities along retention time) can be extracted from the
+=MSdata= object using the =getChromatogram= method, or plotted using the
+=plotChromatogram= method. In its default setting, the =getChromatogram= method
+extracts all intensity and retention time pairs in the =MSdata=, aggregating
+intensities with the exact same retention time. The argument =FUN= of the method
+allows to specify the function to aggregate the intensities. In the default
+setting (=FUN= being =max=) only the maximal intensity for a retention time is
+selected. Below we extract the chromatogram for the data sub-set.
+
+#+BEGIN_SRC R :ravel warning=FALSE
+  ## Extract the (full) chromatogram; the maximal intensity will be selected
+  ## if two or more values have the same retention time. Otherwise, the data
+  ## will be returnes /as.is/
+  chr <- getChromatogram(msSub)
+  head(chr)
+  nrow(chr)
+#+END_SRC
+
+Sometimes it might also be useful to bin the data in retention time dimension
+and aggregate the values within these bins as well. The arguments =nbin= or
+=binSize= allow to specify either the number of bins along the retention time
+axis, or the size of these bins (with the =bins= argument it would be even
+possible to provide the actual bins, but in most instances the =nbin= or
+=binSize= arguments should suffice). This binning allows to reduce the amount of
+data and to group intensities in discrete, equal sized, bins. All intensities
+(along the full M/Z range present in the =MSdata= object) with a retention times
+that fall within a bin are aggregated with the =FUN= function. Below we bin the
+data of the sub-set into 30 bins along the retention time range.
+
+#+NAME: xcmse-bin-chromatogram
+#+BEGIN_SRC R
+  ## Bin the values in 30 bins along the retention time range of the MSdata
+  chrB <- getChromatogram(msSub, nbin=30)
+  head(chrB)
+  nrow(chrB)
+#+END_SRC
+
+In the example above we the matrix representing the extracted chromatogram has
+30 rows, each row representing the aggregated intensities for each bin. Note
+that the matrix could also have less than 30 rows, e.g. if no values would be
+available for a bin.
+
+We next plot the chromatogram, first without binning and add the binned
+chromatogram to that plot.
+
+#+NAME: xcmsExtensions-chromatogram-plot
+#+BEGIN_SRC R :ravel fig.align='center', fig.width=7, fig.height=4, fig.cap="Extracted chromatogram for the data sub set. With (blue) and without (black) binning along the retention time axis."
+  ## Plot the chromatogram.
+  plotChromatogram(msSub, type="l")
+  ## Add the binned chromatogram to the plot.
+  plotChromatogram(msSub, type="l", col="blue", add=TRUE, nbin=30)
+#+END_SRC
+
+With this methods we can also extract the base peak chromatogram
+\cite{Smith:2014di} (BPC, the maximal intensity along the full M/Z range for the
+same retention time) or the total ion chromatogram (TIC, the sum of all
+intensities along the M/Z dimension for the same retention time). We plot these
+two for the =MSdata= representing the full data of the first MS run in the
+experiment. For the former we can just use the default setting for the =FUN=
+method, for the latter we change =FUN= to =sum=.
+
+#+NAME: xcmsExtensions-chromatogram-plot-bpc-tic
+#+BEGIN_SRC R :ravel results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Base peak chromatogram (BPC) and total ion chromatogram (TIC) for the full data."
+  par(mfrow=c(1, 2))
+  ## Plot the BPC.
+  plotChromatogram(msFull, type="l", main="BPC")
+  ## And the TIC.
+  plotChromatogram(msFull, type="l", FUN=sum, main="TIC")
+#+END_SRC
+
+# Extract the spectrum.
+Analogous to the =getChromatogram=, the =getSpectrum= method allows to extract a
+spectrum (i.e. intensities, eventually aggregated for identical retention times,
+along the M/Z dimension) from an =MSdata= object, enabling also an optional
+binning of values in M/Z dimension. In the example below we refine the MS data
+slice for the peak from the example above and plot the chromatogram as well as
+the spectrum for it.
+
+#+NAME: xcmsExtensions-chromatogram-and-spectrum
+#+BEGIN_SRC R :ravel results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Chromatogram and spectrum for the peak."
+  rtr <- c(2550, 2700)
+  mzr <- c(300, 330)
+  ## Extrac the MS data slice
+  msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+  par(mfrow=c(1, 2))
+  ## Plot the chromatogram
+  plotChromatogram(msd, type="l")
+  ## And the spectrum
+  plotSpectrum(msd, type="l")
+#+END_SRC
+
+The =MSdata= is thus the basic object to store MS data of a single MS
+run/sample. Data from different MS runs/samples is represented by, and can be
+stored into, a =MSslice= object. This object is supposed to store the data from
+the same slice from the 2-dimensional (m/z over rt) MS data across several
+samples. In the example below we define a slice representing one of the peaks in
+the =faahko= data set shown in Figure 4 in the =xcms= vignette.
+
+#+BEGIN_SRC R :ravel warning=FALSE, message=FALSE
+  ## Extract the chromatogram of a m/z-rt slice across all samples.
+  ## Defining the mz and rt ranges for the peak in the xcms
+  ## vignette (Figure 4).
+  mzr <- c(300, 330)
+  rtr <- c(2550, 2700)
+  mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
+  mss
+#+END_SRC
+
+Alternatively we could extract an =MSslice= object representing the full MS data
+of all samples of an experiment by simply not providing an =rtrange= or
+=mzrange=.
 
 * Alternative way to access data in =xcmsRaw= objects
 
@@ -286,20 +450,21 @@ possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
 
 ** TODO Implement =calibrate= method.
 ** TODO Stuff to work with the /HMDB/ xml files?
-** TODO =scantime= method for =xcmsRaw=.
-
-** TODO =MSslice= class [0/2]
+** DONE =scantime= method for =xcmsRaw=.
+   CLOSED: [2016-03-30 Wed 15:53]
+   - State "DONE"       from "TODO"       [2016-03-30 Wed 15:53]
+** TODO =MSslice= class [2/4]
 
 The =MSslice= represents a part of the data defined by an =rtrange= and an
 =mzrange=. Would be nice to store that for one such range across several
 files. But this again requires that the times AND mz are synced.
 
-+ [ ] Extract such an object using =slice= from an =xcmsSet= or =xcmsRaw=
++ [X] Extract such an object using =msSlice= from an =xcmsSet= or =xcmsRaw=
   object.
 + [ ] =plot= method: two different ones, one for the spectrum (intensity vs mz)
   and one for the chromatogram (intensity vs rt). In both cases we have to sum
   up intensities for /close/ values either on rt or on mz.
-+ [ ] Documentation.
++ [X] Documentation.
 + [ ] Examples to the vignette.
 
 ** TODO =MSsliceList= class [2/3]
@@ -312,14 +477,16 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [ ] Documentation.
 + [ ] Examples to the vignette.
 
-** TODO =MSdata= class [/]
+** TODO =MSdata= class [4/6]
 
 + [ ] =chromatogram=: plot the chromatogram of the =MSdata= object.
-+ [ ] =getChromatogram=: extract a chromatogram.
-+ [ ] =plotChromatogram=: plot a chromatogram; uses =getChromatogram= to extract
++ [X] =getChromatogram=: extract a chromatogram.
++ [X] =plotChromatogram=: plot a chromatogram; uses =getChromatogram= to extract
   the chromatogram.
-
-** TODO =xic=
++ [X] =getSpectrum=: extract a spectrum (intensity over m/z for one given
+  (small) rt range).
++ [X] =plotSpectrum=: plot that.
++ [ ] =msMap= method for =MSdata=: convert the =MSdata= into a =MSmap=.
 
 ** TODO Easy identification database.
 

@@ -104,7 +104,7 @@ notrun_test_data2MSmap <- function(){
     checkEquals(TestProf, xraw@env$profile)
     ## Roll my own:
     system.time(
-        rl <- runLength(Rle(datmat[, "time"]))
+        rl <- S4Vectors::runLength(S4Vectors::Rle(datmat[, "time"]))
     )
     system.time(
         myidx <- c(0, cumsum(rl)[-length(rl)])

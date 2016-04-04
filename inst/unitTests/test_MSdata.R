@@ -252,3 +252,263 @@ test_getSpectrum <- function(){
         plotSpectrum(msd, binSize=1, type="l", col="blue")
     }
 }
+
+test_msData2mapMatrix <- function(){
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    mat <- xcmsExtensions:::.msData2mapMatrix(msd)
+
+    ## Test also with a completely re-ordered MSdata; shouldn't be a big
+    ## problem.
+    msd2 <- msd
+    idx <- sample(1:length(rtime(msd)))
+    msd2@mz <- msd2@mz[idx]
+    msd2@intensity <- msd2@intensity[idx]
+    msd2@rtime <- S4Vectors::Rle(rtime(msd2)[idx])
+    mat2 <- xcmsExtensions:::.msData2mapMatrix(msd2)
+    checkEquals(mat, mat2)
+
+    ## What with spectrum and chromatogram
+    checkEquals(getSpectrum(msd), getSpectrum(msd2))
+    checkEquals(getChromatogram(msd), getChromatogram(msd2))
+
+    ## Check if the data is as we expect it! mat is a matrix, rows are mz, columns rt.
+    gotMat <- as.matrix(msd)
+    ## Values from the first column have to match corresponding entries in this matrix!
+    for(i in 1:ncol(mat)){
+        tmp <- unname(mat[, i])
+        tmp <- tmp[!is.na(tmp)]
+        checkEquals(tmp, gotMat[gotMat[, 1] == as.numeric(colnames(mat)[i]), "intensity"])
+    }
+    tmp <- as.numeric(mat)
+    checkEquals(tmp[!is.na(tmp)], gotMat[, "intensity"])
+
+    object.size(mat)
+    object.size(msd)
+}
+
+test_mapMatrix <- function(){
+
+    ## Test extracting the data as a 2d matrix.
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    ## Extract the matrix: rows are MZ, cols rt
+    mat <- mapMatrix(msd)
+    checkEquals(as.numeric(rownames(mat)), unique(xcmsExtensions:::mzOrdered(msd)))
+    checkEquals(as.numeric(colnames(mat)), unique(xcmsExtensions:::rtimeOrdered(msd)))
+    ## And the values.
+    vals <- as.numeric(mat)
+    vals <- vals[vals!=0]
+    checkEquals(length(vals), length(intensity(msd)))
+    checkEquals(vals, intensity(msd))
+}
+
+
+notrun_compare_matrix2sparseMatrix <- function(){
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    ## A) same content?
+    mat <- xcmsExtensions:::.msData2mapMatrix(msd)
+    smat <- xcmsExtensions:::.msData2mapSparseMatrix(msd)
+    idxNotNa <- which(!is.na(as.numeric(mat)))
+    checkEquals(as.numeric(mat[idxNotNa]), as.numeric(smat[idxNotNa]))
+    checkEquals(rownames(mat), rownames(smat))
+    checkEquals(colnames(mat), colnames(smat))
+
+    ## B) Creation time
+    msd <- msData(xraw)
+    system.time(mat <- xcmsExtensions:::.msData2mapMatrix(msd)) ## Needs roughly 2 seconds.
+    system.time(smat <- xcmsExtensions:::.msData2mapSparseMatrix(msd)) ## Needs roughly 0.6 secs.
+
+    ## C) memory usage.
+    object.size(mat)  ## about 20MB
+    object.size(smat) ## about 6MB
+
+    ## And the winner is: sparseMatrix!!!
+}
+
+test_binRtime <- function(){
+
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    system.time(rtbinned <- xcmsExtensions:::.binRtime(msd, nbin=20))
+    system.time(rtbinned2 <- xcmsExtensions:::.binRtimeSlow(msd, nbin=20))
+    ## Compare with the slow version, that does return true results
+    mat <- as.matrix(rtbinned)
+    mat2 <- as.matrix(rtbinned2)
+    mat2 <- mat2[order(mat2[, 1], mat2[, 2]), ]
+    checkEquals(mat, mat2)
+
+    ## Randomly rearranged data.
+    msd2 <- msd
+    idx <- sample(1:length(rtime(msd)))
+    msd2@mz <- msd2@mz[idx]
+    msd2@intensity <- msd2@intensity[idx]
+    msd2@rtime <- S4Vectors::Rle(rtime(msd2)[idx])
+    rtbinned2 <- binRtime(msd2, nbin=20)
+    checkEquals(rtbinned, rtbinned2)
+
+    ## Repeat with binSize.
+    system.time(rtbinned <- binRtime(msd, binSize=1))
+    system.time(rtbinned2 <- xcmsExtensions:::.binRtimeSlow(msd, binSize=1))
+    ## Compare with the slow version, that does return true results
+    mat <- as.matrix(rtbinned)
+    mat2 <- as.matrix(rtbinned2)
+    mat2 <- mat2[order(mat2[, 1], mat2[, 2]), ]
+    checkEquals(mat, mat2)
+
+    ## Randomly rearranged data.
+    msd2 <- msd
+    idx <- sample(1:length(rtime(msd)))
+    msd2@mz <- msd2@mz[idx]
+    msd2@intensity <- msd2@intensity[idx]
+    msd2@rtime <- S4Vectors::Rle(rtime(msd2)[idx])
+    rtbinned2 <- binRtime(msd2, binSize=1)
+    checkEquals(rtbinned, rtbinned2)
+}
+
+test_binMz <- function(){
+
+    ## Testing the internal .binMz method and evaluate whether it is
+    ## binning as expected.
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    system.time(mzbinned <- xcmsExtensions:::.binMz(msd, nbin=20))
+    system.time(mzbinned2 <- xcmsExtensions:::.binMzSlow(msd, nbin=20))
+    ## Expect 20 unique mz values
+    checkEquals(length(unique(mz(mzbinned))), 20)
+    ## Compare with the slow version, that does return true results
+    mat <- as.matrix(mzbinned)
+    mat2 <- as.matrix(mzbinned2)
+    mat2 <- mat2[order(mat2[, 1], mat2[, 2]), ]
+    checkEquals(mat, mat2)
+
+    ## Test what happens if we have randomly ordered data.
+    msd2 <- msd
+    idx <- sample(1:length(rtime(msd)))
+    msd2@mz <- msd2@mz[idx]
+    msd2@intensity <- msd2@intensity[idx]
+    msd2@rtime <- S4Vectors::Rle(rtime(msd2)[idx])
+    mzbinned2 <- xcmsExtensions:::.binMz(msd2, nbin=20)
+    checkEquals(mzbinned, mzbinned2)
+
+    ## Repeat with specifying a binSize of 1
+    system.time(mzbinned <- xcmsExtensions:::.binMz(msd, binSize=1))
+    ## The same but not sorting.
+    system.time(mzbinned2 <- xcmsExtensions:::.binMzUnsorted(msd, binSize=1))
+    ## Check with the "slow" method
+    system.time(mzbinned3 <- xcmsExtensions:::.binMzSlow(msd, binSize=1))
+    ## Check if we've got the same:
+    mat <- as.matrix(mzbinned)
+    mat2 <- as.matrix(mzbinned2)
+    mat3 <- as.matrix(mzbinned3)
+    ## Order the matrices... no need for mat.
+    mat2 <- mat2[order(mat2[, 1], mat2[, 2]), ]
+    mat3 <- mat3[order(mat3[, 1], mat3[, 2]), ]
+    checkEquals(mat, mat2)
+    checkEquals(mat, mat3)
+    ## OK, fine.
+
+    ## Test what happens if we have randomly ordered data.
+    msd2 <- msd
+    idx <- sample(1:length(rtime(msd)))
+    msd2@mz <- msd2@mz[idx]
+    msd2@intensity <- msd2@intensity[idx]
+    msd2@rtime <- S4Vectors::Rle(rtime(msd2)[idx])
+    system.time(mzbinned2 <- xcmsExtensions:::.binMz(msd2, binSize=1))
+    checkEquals(mzbinned, mzbinned2)
+    ## OK; fine!
+
+    ## At last check the method itself.
+    mzb <- binMz(msd, binSize=1)
+    checkEquals(mzb, mzbinned)
+
+    ## Some error checking
+    checkException(binMz(msd, binSize=1, nbin=3))
+
+    ## Check performance on the full data set.
+    ## msfull <- msData(xraw)
+    ## system.time(mzbinned <- xcmsExtensions:::.binMz(msfull, binSize=1))   ## Amazingly slow... took me 10secs!
+    ## ## If we don't sort?
+    ## system.time(mzbinnedUnsorted <- xcmsExtensions:::.binMz(msfull, binSize=1, sort=FALSE))  ## took 8secs!
+    ## ## Do the slow version
+    ## system.time(mzbinned3 <- xcmsExtensions:::.binMzSlow(msfull, binSize=1))  ## 30secs!
+    ## mat <- as.matrix(mzbinned)
+    ## mat2 <- as.matrix(mzbinnedUnsorted)
+    ## mat2 <- mat2[order(mat2[, 1], mat2[, 2]), ]
+    ## mat3 <- as.matrix(mzbinned3)
+    ## mat3 <- mat3[order(mat3[, 1], mat3[, 2]), ]
+    ## checkEquals(mat, mat2)
+    ## checkEquals(mat, mat3)
+}
+
+test_binMzRtime <- function(){
+    do.plot <- FALSE
+    ## Bin in both dimensions.
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    system.time(mzbinned <- xcmsExtensions:::.binMz(msd, nbin=20))
+    mzNrt <- binRtime(mzbinned, binSize=5)
+
+    ## All in one go:
+    inOne <- binMzRtime(msd, mzNbin=20, rtBinSize=5)
+    checkEquals(mzNrt, inOne)
+    if(do.plot){
+        par(mfrow=c(1, 2))
+        plotSpectrum(msd, col="grey", type="l")
+        plotSpectrum(inOne, col="blue", type="l", add=TRUE, lty=2)
+        plotChromatogram(msd, col="grey", type="l")
+        plotChromatogram(inOne, col="blue", type="l", add=TRUE, lty=2)
+    }
+}
+
+notrun_test_2mat <- function(){
+    ## want to transform a MSdata into a nice 2d map.
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+    ## Extrac the MS data slice
+    msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+    tmp <- as.matrix(msd)
+    ## Unique rt and mz
+    rtU <- unique(tmp[, "rtime"])
+    mzU <- sort(unique(tmp[, "mz"]))
+    ## The matrix will be a rtU * mzU matrix
+    nrow(tmp)
+    length(rtU) * length(mzU)
+    ## Apparently we don't have for all rt and/or mz a value.
+
+    mzIDf <- data.frame(mz=mz(msd), intensity=intensity(msd))
+    mzIList <- split(mzIDf, rtime(msd))
+
+    ## Now match all of mz values of each rt-data.frame to the
+    ## mzU.
+    matchList <- lapply(mzIList, function(z){
+        tmp <- rep(NA, length(mzU))
+        tmp[match(z[, "mz"], mzU)] <- z[, "intensity"]
+        return(tmp)
+    })
+    fullInts <- unlist(matchList, use.names=FALSE)
+    ## OK, now, the first length(mzU) entries correspond to the rtU[1]
+    ## and so one. Thus, rows would be mz here, columns rt!
+    twoDmat <- matrix(fullInts, ncol=length(rtU), nrow=length(mzU))
+    rownames(twoDmat) <- mzU
+    colnames(twoDmat) <- rtU
+    object.size(twoDmat)
+
+    ## The code actually went into the .msData2mapMatrix.
+}

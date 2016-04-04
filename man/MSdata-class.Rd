@@ -27,6 +27,15 @@
 \alias{getSpectrum,MSdata-method}
 \alias{plotSpectrum}
 \alias{plotSpectrum,MSdata-method}
+\alias{mapMatrix}
+\alias{mapMatrix,MSdata-method}
+%% Data manipulation stuff
+\alias{binMz}
+\alias{binMz,MSdata-method}
+\alias{binRtime}
+\alias{binRtime,MSdata-method}
+\alias{binMzRtime}
+\alias{binMzRtime,MSdata-method}
 
 
 \title{Simple MS data object}
@@ -45,6 +54,14 @@
 
 \S4method{as.matrix}{MSdata}(x, ...)
 
+\S4method{binMz}{MSdata}(object, FUN=max, bins=NULL, nbin=NULL,
+                         binSize=NULL)
+\S4method{binMzRtime}{MSdata}(object, FUN=max, mzNbin=NULL,
+          mzBinSize=NULL, rtNbin=NULL, rtBinSize=NULL)
+
+\S4method{binRtime}{MSdata}(object, FUN=max, bins=NULL, nbin=NULL,
+                            binSize=NULL)
+
 \S4method{getChromatogram}{MSdata}(object, FUN=max, bins=NULL,
                                    nbin=NULL, binSize=NULL, ...)
 
@@ -56,6 +73,8 @@
 \S4method{intensity}{MSdata}(object) <- value
 
 \S4method{intrange}{MSdata}(object)
+
+\S4method{mapMatrix}{MSdata}(object)
 
 MSdata(mz, rtime, intensity, mslevel=1)
 
@@ -97,23 +116,24 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
   \item{bins}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}:
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and \code{binRtime}:
     Numeric vector specifying the bins to bin the retention time. See
     \code{getChromatogram} method description for details on the
     binning.
   }
 
   \item{binSize}{
-     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}:
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and \code{binRtime}:
     Numeric (length 1) specifying the bin width/size. See
     \code{getChromatogram} method description for details on the
     binning.
   }
 
   \item{FUN}{
-     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: function
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz},
+    \code{binMzRtime} and \code{binRtime}: function
     that should be used to aggregate intensities within a bin. By
     default the largest intensity within a bin is selected. See
     \code{getChromatogram} method description for details on the
@@ -136,6 +156,16 @@ MSdata(mz, rtime, intensity, mslevel=1)
     A numeric vector specifying the m/z values.
   }
 
+  \item{mzNbin}{
+    For \code{binMzRtime}: numeric (length 1) specifying the number of
+    bins to bin the M/Z range. See also argument \code{bin}.
+  }
+
+  \item{mzBinSize}{
+    For \code{binMzRtime}: numeric (length 1) specifying the size of
+    the bins along M/Z range. See also argument \code{binSize}.
+  }
+
   \item{mzrange}{
     For \code{msData}: a numeric of length 2 specifying the range of m/z
     values to be extracted from the object.
@@ -143,9 +173,10 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
   \item{nbin}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: numeric
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and
+    \code{binRtime}: numeric
     (length 1) specifying the number of bins in which the retention time
-    range should be binned. See \code{getChromatogram} method
+    range (or M/Z range) should be binned. See \code{getChromatogram} method
     description for details on the binning.
   }
 
@@ -161,6 +192,16 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
   \item{rtime}{
     A numeric vector specifying the retention time values.
+  }
+
+  \item{rtNbin}{
+    For \code{binMzRtime}: numeric (length 1) specifying the number of
+    bins to bin the retention time range. See also argument \code{bin}.
+  }
+
+  \item{rtBinSize}{
+    For \code{binMzRtime}: numeric (length 1) specifying the size of
+    the bins along retention time range. See also argument \code{binSize}.
   }
 
   \item{rtrange}{
@@ -323,6 +364,20 @@ MSdata(mz, rtime, intensity, mslevel=1)
       returns \code{c(NA, NA)}.
     }
 
+    \item{mapMatrix}{
+      Extract the MS data as a two-dimensional matrix, columns being the
+      (discrete) retention time of each measurement, rows its M/Z
+      value. The method returns a \emph{sparse matrix} from the
+      \code{Matrix} package with not-present intentensity values encoded
+      by a \code{0} (i.e. if for a specific retention time - M/Z tuple
+      no intensity is available/was measured). The \emph{sparseness} of
+      the data matrix might be reduced by performing first a binning in
+      M/Z, retention time or both dimensions.
+
+      The rownames of the matrix represent the M/Z intensities, the
+      column names the retention time values.
+    }
+
     \item{mz, mz<-}{
       Get or set the mz values of the \code{MSdata} object. \code{mz}
       returns a numeric vector with the mz values.
@@ -355,6 +410,44 @@ MSdata(mz, rtime, intensity, mslevel=1)
       object which is internally extracted by the \code{getChromatogram}
       method (refer to the description of that function for the data
       binning etc.).
+    }
+    \item{plotSpectrum}{
+      The method plots the spectrum of an \code{MSdata}
+      object which is internally extracted by the \code{getSpectrum}
+      method (refer to the description of that function for the data
+      binning etc.).
+    }
+  }
+}
+
+\section{Data manipulations}{
+  \describe{
+    \item{binMz}{
+      This method cuts the M/Z range of an \code{MSdata} object in equal
+      spaced bins and aggregates all intensity values with an M/Z value
+      falling within the bin and the same retention time.
+
+      For details on the method arguments and the binning see the help
+      for the \code{getChromatogram} method.
+
+      The method returns an \code{MSdata} object.
+    }
+
+    \item{binMzRtime}{
+      This method performs a binning first in M/Z dimension followed by
+      a retention time binning.
+
+      For details on binning see the \code{getChromatogram} method.
+
+      The method returns a \code{MSdata} object with the data binned
+      both on M/Z and retention time dimension.
+    }
+
+    \item{binRtime}{
+      Same as the \code{binMz} method, but for binning along the
+      retention time dimension.
+
+      The method returns an \code{MSdata} object.
     }
   }
 }
@@ -471,6 +564,51 @@ nrow(spc)
 par(mfrow=c(1, 2))
 plotChromatogram(msd, type="l")
 plotSpectrum(msd, type="l")
+
+## Extract the data as a two-dimensional matrix.
+mapM <- mapMatrix(msd)
+dim(mapM)
+head(mapM)
+
+####-------------
+##  Data manipulations
+
+## We process the MSdata object from above and aggregate values falling into
+## the same bin on M/Z dimension. We define a binSize of 1, thus, the maximum
+## of all signal values with the same retention time falling into the same bin
+## will be returned in the resulting MSdata object. Note that this binning is
+## rather crude and we should use this only e.g. for plotting purposes, i.e. to
+## reduce the data points to plot.
+msd
+
+msdBinned <- binMz(msd, binSize=1)
+msdBinned
+
+length(unique(mz(msd)))
+length(unique(mz(msdBinned)))
+
+## Plot the spectrum and the chromatogram of both.
+par(mfrow=c(1, 2))
+plotSpectrum(msd, type="l")
+plotSpectrum(msdBinned, type="l", add=TRUE, col="blue")
+plotChromatogram(msd, type="l")
+plotChromatogram(msdBinned, type="l", add=TRUE, col="blue", lty=2)
+
+## The same way we perform the binning in retention time axis.
+msdBinned <- binRtime(msd, binSize=5)
+length(unique(rtime(msd)))
+length(unique(rtime(msdBinned)))
+
+## Plot the spectrum and the chromatogram of both.
+par(mfrow=c(1, 2))
+plotSpectrum(msd, type="l")
+plotSpectrum(msdBinned, type="l", add=TRUE, col="blue", lty=2)
+plotChromatogram(msd, type="l")
+plotChromatogram(msdBinned, type="l", add=TRUE, col="blue", lty=2)
+
+## Next we bin the data in both dimensions.
+binBoth <- binMzRtime(msd, mzNbin=20, rtBinSize=5)
+binBoth
 
 }
 \keyword{classes}

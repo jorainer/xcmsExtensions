@@ -1,9 +1,18 @@
 import(utils)
 import(methods)
+
+## Stuff from Matrix...
+importFrom("Matrix", "sparseMatrix")
+importClassesFrom("Matrix", "sparseMatrix")
+
 import(BiocGenerics)
 import(ProtGenerics)
 import(MSnbase)
-import(S4Vectors)
+
+## S4Vectors:
+importFrom("S4Vectors", "Rle", "as.matrix", "runLength")
+importClassesFrom("S4Vectors", "Rle")
+
 import(BiocParallel)
 ## Just import all from xcms
 import(xcms)
@@ -25,7 +34,8 @@ exportMethods("scantimes", "getData", "msMap")
 ## MSdata methods:
 exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
               "rtrange", "mzrange", "intrange", "getChromatogram",
-              "getSpectrum", "plotChromatogram", "plotSpectrum")
+              "getSpectrum", "plotChromatogram", "plotSpectrum",
+              "binMz", "binRtime", "binMzRtime", "mapMatrix")
 
 ## MSsliceList methods:
 exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",

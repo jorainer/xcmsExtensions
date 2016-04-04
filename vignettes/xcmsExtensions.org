@@ -282,7 +282,9 @@ spectrum (i.e. intensities, eventually aggregated for identical retention times,
 along the M/Z dimension) from an =MSdata= object, enabling also an optional
 binning of values in M/Z dimension. In the example below we refine the MS data
 slice for the peak from the example above and plot the chromatogram as well as
-the spectrum for it.
+the spectrum for it. The MS data could alternatively also extracted as a
+two-dimensional matrix with the =mapMatrix= method (see further below in /Data
+manipulations/ section for an example).
 
 #+NAME: xcmsExtensions-chromatogram-and-spectrum
 #+BEGIN_SRC R :ravel results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Chromatogram and spectrum for the peak."
@@ -317,6 +319,65 @@ the =faahko= data set shown in Figure 4 in the =xcms= vignette.
 Alternatively we could extract an =MSslice= object representing the full MS data
 of all samples of an experiment by simply not providing an =rtrange= or
 =mzrange=.
+
+* Data manipulations
+
+One of the simplest data manipulations is to aggregate intensities in bins along
+the M/Z or the retention time axis. This might be done to reduce the amount of
+data points e.g. to plot the data. Binning in retention time dimension is also
+especially useful to match individual intensities across samples, if the
+retention times slightly differ. In the example below we aggregate intensities
+in bins of size 1 along the M/Z and along the retention time axis (especially in
+M/Z dimension this binning might be too coarse in a real world situation). By
+default, the maximal signal is selected for each bin, but this can be changed
+with the argument =FUN=.
+
+#+NAME: xcmsExtensions-binning-chrom-spec-plot
+#+BEGIN_SRC R :ravel fig.cap="Chromatogram and Spectrum for the MS data sub-set, grey represents the raw data and blue the binned values. Upper row: binned along the M/Z dimension, lower row: in retention time dimension.", fig.align='center'
+  ## Using the the same of the MS data from the previous section.
+  rtr <- c(2550, 2700)
+  mzr <- c(300, 330)
+  msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+  ## Bin along the M/Z range
+  mzBinned <- binMz(msd, binSize=1)
+  ## And along the retention time
+  rtBinned <- binRtime(msd, binSize=5)
+
+  ## Plotting
+  par(mfrow=c(2, 2))
+  plotChromatogram(msd, type="l", col="grey")
+  plotChromatogram(mzBinned, type="l", add=TRUE, col="blue", lty=2)
+  plotSpectrum(msd, type="l", col="grey")
+  plotSpectrum(mzBinned, type="l", add=TRUE, col="blue", lty=2)
+  ##
+  plotChromatogram(msd, type="l", col="grey")
+  plotChromatogram(rtBinned, type="l", add=TRUE, col="blue", lty=2)
+  plotSpectrum(msd, type="l", col="grey")
+  plotSpectrum(rtBinned, type="l", add=TRUE, col="blue", lty=2)
+#+END_SRC
+
+To bin the data matrix in both dimensions, the =binMzRtime= method can be used.
+
+The MS data can also be extracted as a two-dimensional matrix, with rows being
+the M/Z and columns the retention time values for each measurement. This might
+e.g. be useful to plot the data using the =image= or =levelplot=
+functions. Below we first bin the =MSdata= in both, M/Z and retention time,
+extract the resulting MS data matrix and plot it. Below we plot the matrix using
+the =image= function, to use the =levelplot= we first have to cast the
+=dgCMatrix= into a /normal/ matrix using the =as.matrix= function.
+
+#+NAME: xcmsExtensions-binning-mapMatrix-plot
+#+BEGIN_SRC R :ravel fig.cal="Image plot of the binned MS data.", fig.align='center'
+  ## We bin the data along the retention time in 5 second intervals and into 20
+  ## bins along the M/Z dimension.
+  M <- mapMatrix(binMzRtime(msd, rtBinSize=5, mzNbin=20))
+  image(M, xlab="Retention time", ylab="M/Z")
+  ## levelplot(as.matrix(M))
+#+END_SRC
+
+
+
 
 * Alternative way to access data in =xcmsRaw= objects
 
@@ -453,7 +514,7 @@ possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
 ** DONE =scantime= method for =xcmsRaw=.
    CLOSED: [2016-03-30 Wed 15:53]
    - State "DONE"       from "TODO"       [2016-03-30 Wed 15:53]
-** TODO =MSslice= class [2/4]
+** TODO =MSslice= class [3/5]
 
 The =MSslice= represents a part of the data defined by an =rtrange= and an
 =mzrange=. Would be nice to store that for one such range across several
@@ -461,11 +522,12 @@ files. But this again requires that the times AND mz are synced.
 
 + [X] Extract such an object using =msSlice= from an =xcmsSet= or =xcmsRaw=
   object.
-+ [ ] =plot= method: two different ones, one for the spectrum (intensity vs mz)
++ [X] =plot= method: two different ones, one for the spectrum (intensity vs mz)
   and one for the chromatogram (intensity vs rt). In both cases we have to sum
   up intensities for /close/ values either on rt or on mz.
 + [X] Documentation.
 + [ ] Examples to the vignette.
++ [ ] =binMz=, =binRt= and both.
 
 ** TODO =MSsliceList= class [2/3]
 
@@ -477,7 +539,7 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [ ] Documentation.
 + [ ] Examples to the vignette.
 
-** TODO =MSdata= class [4/6]
+** TODO =MSdata= class [7/8]
 
 + [ ] =chromatogram=: plot the chromatogram of the =MSdata= object.
 + [X] =getChromatogram=: extract a chromatogram.
@@ -486,13 +548,19 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [X] =getSpectrum=: extract a spectrum (intensity over m/z for one given
   (small) rt range).
 + [X] =plotSpectrum=: plot that.
-+ [ ] =msMap= method for =MSdata=: convert the =MSdata= into a =MSmap=.
++ [X] =msMap= method for =MSdata=: convert the =MSdata= into a =MSmap=.
++ [X] =binMzRtime= method to bin in both dimensions!
++ [X] =mapMatrix= method to extract a matrix representing the data (two-d).
+
 
 ** TODO Easy identification database.
 
 + [ ] Create a simple database (table) with mass, internal id, external id,
   source and name to easily and fast identify peaks based on mass alone.
 + [ ] Method =simpleIdentify= method.
++ [ ] Implement a method =matchMz= that allows to
+  - Identify e.g. peaks in the data (if applied to an =xcmsSet= object).
+  - Annotate peaks (if applied to an annotation database object).
 
 ** TODO shiny app to visualize the data of an =xcmsSet= or =xcmsRaw= object.
 

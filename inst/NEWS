@@ -1,3 +1,13 @@
+CHANGES IN VERSION 0.0.3
+------------------------
+
+NEW FEATURES:
+    o binMz, binRtime and binMzRtime to perform data binning in M/Z, rt or both
+      dimensions.
+    o mapMatrix: extract the data as a two-dimensional Matrix (sparseMatrix).
+    o getChromatogram, getSpectrum for MSslice objects.
+
+
 CHANGES IN VERSION 0.0.2
 ------------------------
 

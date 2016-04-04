@@ -29,11 +29,11 @@ test_MSslice <- function(){
     checkEquals(mzrange(mss2), mzrange(msd))
 }
 
-test_plotChromatogram <- function(){
-    mzr <- c(302, 302.5)
-    rtr <- c(2500, 2700)
-    mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
-}
+## test_plotChromatogram <- function(){
+##     mzr <- c(302, 302.5)
+##     rtr <- c(2500, 2700)
+##     mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
+## }
 
 test_getChromatogram <- function(){
     do.plot <- FALSE
@@ -72,6 +72,7 @@ test_getChromatogram <- function(){
         for(i in 1:ncol(chrM)){
             points(as.numeric(rownames(chrM)), chrM[, i], col="grey", type="l")
         }
+        plotChromatogram(mss)
     }
     ## Check if we want to get rt spacing of 1 (sec?)
     chrM <- getChromatogram(mss, binSize=1)
@@ -80,3 +81,23 @@ test_getChromatogram <- function(){
     checkTrue(min(diff(as.numeric(rownames(chrM)))) == 1)
 }
 
+test_getSpectrum <- function(){
+    do.plot <- FALSE
+    mzr <- c(300, 303)
+    rtr <- c(2500, 2700)
+    suppressWarnings(
+        mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
+    )
+    spcM <- getSpectrum(mss)
+
+    suppressWarnings(
+        Test <- getSpectrum(msData(getXcmsRaw(xset, 3), mzrange=mzr, rtrange=rtr))
+    )
+    rownames(Test) <- Test[, "mz"]
+    checkEquals(spcM[!is.na(spcM[, 3]), 3], Test[, "intensity"])
+    if(do.plot){
+        plotSpectrum(mss, type="h", col="#00000020")
+    }
+    ## Has to be increasingly.
+    checkEquals(order(as.numeric(rownames(spcM))), 1:nrow(spcM))
+}

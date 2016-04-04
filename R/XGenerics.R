@@ -10,6 +10,16 @@ setGeneric("plotChromatogram", function(object, ...)
 setGeneric("plotSpectrum", function(object, ...)
     standardGeneric("plotSpectrum"))
 
+setGeneric("binMz", function(object, ...)
+    standardGeneric("binMz"))
+setGeneric("binRtime", function(object, ...)
+    standardGeneric("binRtime"))
+setGeneric("binMzRtime", function(object, ...)
+    standardGeneric("binMzRtime"))
+
+setGeneric("mapMatrix", function(object, ...)
+    standardGeneric("mapMatrix"))
+
 setGeneric("getData", function(x, mzrange=NULL, rtrange=NULL, intrange=NULL, ...)
     standardGeneric("getData"))
 

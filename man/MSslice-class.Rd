@@ -16,6 +16,8 @@
 \alias{length,MSslice-method}
 \alias{getChromatogram,MSslice-method}
 \alias{plotChromatogram,MSslice-method}
+\alias{getSpectrum,MSslice-method}
+\alias{plotSpectrum,MSslice-method}
 
 
 \title{MS data subsets of several samples}
@@ -43,6 +45,9 @@
 \S4method{getChromatogram}{MSslice}(object, FUN=max, bins=NULL,
                            nbin=NULL, binSize=NULL, ...)
 
+\S4method{getSpectrum}{MSslice}(object, FUN=max, bins=NULL,
+                                nbin=NULL, binSize=NULL, ...)
+
 \S4method{intrange}{MSslice}(object)
 
 \S4method{length}{MSslice}(x)
@@ -68,6 +73,12 @@ MSslice(...)
                             collapse="-"), xlab="Retention time",
                             ylab="Intensity", col=1, lty=1, ...)
 
+\S4method{plotSpectrum}{MSslice}(object, FUN=max, bins=NULL,
+                                 nbin=NULL, binSize=NULL,
+                                 main=paste(format(rtrange(object), 2),
+                                 collapse="-"), xlab="M/Z",
+                                 ylab="Intensity", col=1, lty=1, ...)
+
 \S4method{rtrange}{MSslice}(object)
 
 }
@@ -77,21 +88,24 @@ MSslice(...)
 
 
   \item{bins}{
-    For \code{getChromatogram} and \code{plotChromatogram}: Numeric
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: numeric
     vector specifying the bins to bin the retention time. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
     objects for more details on the binning.
   }
 
   \item{binSize}{
-    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: numeric
     (length 1) specifying the bin width/size. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
     objects for more details on the binning.
   }
 
   \item{FUN}{
-    For \code{getChromatogram} and \code{plotChromatogram}: function
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: function
     that should be used to aggregate intensities within a bin. By
     default the largest intensity within a bin is selected. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
@@ -109,19 +123,19 @@ MSslice(...)
   }
 
   \item{col}{
-    For \code{plotChromatogram}: a single color or vector specifying
+    For \code{plotChromatogram} and \code{plotSpectrum}: a single color or vector specifying
     colors for each sample/\code{MSdata} object in the \code{MSslice}.
   }
 
   \item{lty}{
-    For \code{plotChromatogram}: a numeric specifying the line type for
+    For \code{plotChromatogram} and \code{plotSpectrum}: a numeric specifying the line type for
     each sample/\code{MSdata} object in the \code{MSslice}; if
     \code{lty} has length of 1, this line type will be used for all
     lines.
   }
 
   \item{main}{
-    For \code{plotChromatogram}: the title of the plot.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the title of the plot.
   }
 
   \item{mzrange}{
@@ -129,7 +143,8 @@ MSslice(...)
   }
 
   \item{nbin}{
-    For \code{getChromatogram} and \code{plotChromatogram}: numeric
+    For \code{getChromatogram}, \code{getSpectrum},
+    \code{plotChromatogram} and \code{plotSpectrum}: numeric
     (length 1) specifying the number of bins in which the retention time
     range should be binned. See \code{getChromatogram} method
     description for \code{\link{MSdata}} objects for more details on the
@@ -159,11 +174,11 @@ MSslice(...)
   }
 
   \item{xlab}{
-    For \code{plotChromatogram}: the label for the x-axis.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the label for the x-axis.
   }
 
   \item{ylab}{
-    For \code{plotChromatogram}: the label for the y-axis.
+    For \code{plotChromatogram} and \code{plotSpectrum}: the label for the y-axis.
   }
 
   \item{...}{
@@ -263,6 +278,15 @@ MSslice(...)
       \code{getChromatogram} method of \code{\link{MSdata}} objects.
     }
 
+    \item{getSpectrum}{
+      Extracts a numeric matrix with the spectrum (i.e. intensities
+      along the M/Z dimension) for each of the \code{MSdata} objects and
+      hence samples of the \code{MSslice} object. The rownames of the
+      matrix represent the distinct M/Z values and columns the
+      individual samples. For more details (e.g. also on binning etc)
+      see the help of the \code{getChromatogram} method above.
+    }
+
     \item{intrange}{
       Get the range of intensity values of the slice. This represents the range of
       values across all samples (i.e. all \code{MSdata} objects within
@@ -306,6 +330,10 @@ MSslice(...)
       \code{lty} can be used to use a different color for each line
       (i.e. sample) or a different line type. See description of the
       \code{getChromatogram} for details on the other parameters.
+    }
+
+    \item{plotSpectrum}{
+      Plots the spectrum; see help of \code{plotChromatogram} above.
     }
   }
 }
@@ -385,11 +413,21 @@ plotChromatogram(msFull, binSize=1, col="#00000080", type="l")
 ## Total ion chromatogram with 1 second binning
 plotChromatogram(msFull, FUN=sum, binSize=1, col="#00000080", type="l")
 
+## Extending the M/Z range of the slice and extracting and plotting also the spectrum.
+mzr <- c(300, 303)
+mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
+
+## Get the spectrum without binning:
+head(getSpectrum(mss))
 
 ## We can also extract a slice from an xcmsRaw object, which will then
 ## contain the data only of that individual sample. Without specifying an
 ## mzrange and rtrange we extract the full data.
 msSlice(getXcmsRaw(xset, 1))
+
+par(mfrow=c(1, 2))
+plotChromatogram(mss, binSize=1, col="#00000080", type="l")
+plotSpectrum(mss, col="#00000040", type="h")
 
 ## Or from an MSdata object; extracting first a MSdata object containing
 ## the *full* MS data from a single file and creating then an MSslice object

@@ -196,7 +196,9 @@ spectrum (i.e. intensities, eventually aggregated for identical retention times,
 along the M/Z dimension) from an `MSdata` object, enabling also an optional
 binning of values in M/Z dimension. In the example below we refine the MS data
 slice for the peak from the example above and plot the chromatogram as well as
-the spectrum for it.
+the spectrum for it. The MS data could alternatively also extracted as a
+two-dimensional matrix with the `mapMatrix` method (see further below in *Data
+manipulations* section for an example).
 
 ```{r xcmsExtensions-chromatogram-and-spectrum, results='hold', fig.align='center', fig.width=7, fig.height=3.5, fig.cap="Chromatogram and spectrum for the peak."}
 rtr <- c(2550, 2700)
@@ -230,6 +232,60 @@ mss
 Alternatively we could extract an `MSslice` object representing the full MS data
 of all samples of an experiment by simply not providing an `rtrange` or
 `mzrange`.
+
+# Data manipulations
+
+One of the simplest data manipulations is to aggregate intensities in bins along
+the M/Z or the retention time axis. This might be done to reduce the amount of
+data points e.g. to plot the data. Binning in retention time dimension is also
+especially useful to match individual intensities across samples, if the
+retention times slightly differ. In the example below we aggregate intensities
+in bins of size 1 along the M/Z and along the retention time axis (especially in
+M/Z dimension this binning might be too coarse in a real world situation). By
+default, the maximal signal is selected for each bin, but this can be changed
+with the argument `FUN`.
+
+```{r xcmsExtensions-binning-chrom-spec-plot, fig.cap="Chromatogram and Spectrum for the MS data sub-set, grey represents the raw data and blue the binned values. Upper row: binned along the M/Z dimension, lower row: in retention time dimension.", fig.align='center'}
+## Using the the same of the MS data from the previous section.
+rtr <- c(2550, 2700)
+mzr <- c(300, 330)
+msd <- msData(xraw, mzrange=mzr, rtrange=rtr)
+
+## Bin along the M/Z range
+mzBinned <- binMz(msd, binSize=1)
+## And along the retention time
+rtBinned <- binRtime(msd, binSize=5)
+
+## Plotting
+par(mfrow=c(2, 2))
+plotChromatogram(msd, type="l", col="grey")
+plotChromatogram(mzBinned, type="l", add=TRUE, col="blue", lty=2)
+plotSpectrum(msd, type="l", col="grey")
+plotSpectrum(mzBinned, type="l", add=TRUE, col="blue", lty=2)
+##
+plotChromatogram(msd, type="l", col="grey")
+plotChromatogram(rtBinned, type="l", add=TRUE, col="blue", lty=2)
+plotSpectrum(msd, type="l", col="grey")
+plotSpectrum(rtBinned, type="l", add=TRUE, col="blue", lty=2)
+```
+
+To bin the data matrix in both dimensions, the `binMzRtime` method can be used.
+
+The MS data can also be extracted as a two-dimensional matrix, with rows being
+the M/Z and columns the retention time values for each measurement. This might
+e.g. be useful to plot the data using the `image` or `levelplot`
+functions. Below we first bin the `MSdata` in both, M/Z and retention time,
+extract the resulting MS data matrix and plot it. Below we plot the matrix using
+the `image` function, to use the `levelplot` we first have to cast the
+`dgCMatrix` into a *normal* matrix using the `as.matrix` function.
+
+```{r xcmsExtensions-binning-mapMatrix-plot, fig.cal="Image plot of the binned MS data.", fig.align='center'}
+## We bin the data along the retention time in 5 second intervals and into 20
+## bins along the M/Z dimension.
+M <- mapMatrix(binMzRtime(msd, rtBinSize=5, mzNbin=20))
+image(M, xlab="Retention time", ylab="M/Z")
+## levelplot(as.matrix(M))
+```
 
 # Alternative way to access data in `xcmsRaw` objects
 

@@ -13,6 +13,21 @@ import(MSnbase)
 importFrom("S4Vectors", "Rle", "as.matrix", "runLength")
 importClassesFrom("S4Vectors", "Rle")
 
+## XML_
+import("XML")
+## importFrom("XML", xmlParse)
+## importClassesFrom("XML", "XMLInternalElementNode", "XMLNodeSet")
+## importMethodsFrom("XML", "xmlRoot", "getNodeSet", "xmlValue")
+
+## DB stuff
+importFrom(DBI, dbDriver, dbConnect)
+import(RSQLite)
+importMethodsFrom(AnnotationDbi, dbconn, columns)
+##, keytypes, keys, select, mapIds)
+importClassesFrom("ensembldb", "BasicFilter")
+importMethodsFrom("ensembldb", "column", "where", "listTables", "value", "value<-",
+                  "condition", "condition<-")
+
 import(BiocParallel)
 ## Just import all from xcms
 import(xcms)
@@ -28,6 +43,10 @@ importFrom("graphics", "points")
 ## importClassesFrom(AnnotationHub, AnnotationHub)
 ## importMethodsFrom(AnnotationHub, query, mcols)
 
+## Classes
+exportClasses("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb",
+              "CompoundidFilter")
+
 ## xcmsRaw methods:
 exportMethods("scantimes", "getData", "msMap")
 
@@ -41,14 +60,19 @@ exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
 exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",
               "[", "[[")
 
-## Classes
-exportClasses("MSdata", "MSslice", "MSsliceList")
+## SimpleCompoundDb methods:
+exportMethods("dbconn", "columns", "listTables", "as.data.frame", "compounds")
+
+## ComoundidFilter
+exportMethods("column", "where", "value", "value<-", "condition", "condition<-")
 
 ## Generic methods
-exportMethods("show", "msSlice", "msData", "as.matrix", "length")
+exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmatch")
 
 ## Constructors
-export("MSdata", "MSslice", "MSsliceList")
+export("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb", "CompoundidFilter")
+
+
 
 ## ## Export functions
 ## export("Props")

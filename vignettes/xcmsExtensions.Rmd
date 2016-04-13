@@ -67,7 +67,9 @@ introduction of the below listed classes and their methods.
 
 -   `MSsliceList`: a list of several `MSslice` object. If e.g. different slices
     defined by different mz/rt ranges from a single sample (e.g. from a single
-    `xcmsRaw` object), these will be stored and returned in a `MSsliceList`.
+    `xcmsRaw` object), these will be stored and returned in a `MSsliceList`. Such
+    an `MSsliceList` object could for example be used to store the MS data of all
+    peaks identified across all samples.
 
 # Extracting MS data
 
@@ -219,6 +221,10 @@ the same slice from the 2-dimensional (m/z over rt) MS data across several
 samples. In the example below we define a slice representing one of the peaks in
 the `faahko` data set shown in Figure 4 in the `xcms` vignette.
 
+Alternatively we could extract an `MSslice` object representing the full MS data
+of all samples of an experiment by simply not providing an `rtrange` or
+`mzrange`.
+
 ```{r warning=FALSE, message=FALSE}
 ## Extract the chromatogram of a m/z-rt slice across all samples.
 ## Defining the mz and rt ranges for the peak in the xcms
@@ -229,9 +235,75 @@ mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
 mss
 ```
 
-Alternatively we could extract an `MSslice` object representing the full MS data
-of all samples of an experiment by simply not providing an `rtrange` or
-`mzrange`.
+Most of the methods defined for `MSdata` objects are also available for
+`MSslice` objects. In the example below we thus extract the chromatogram and the
+spectrum from the `MSdata` object and get for each of the two as a result a
+matrix, rows being either unique retention times or M/Z values and columns
+samples.
+
+```{r }
+## Extracting the chromatogram from the MSslice object. To reduce the data points
+## and enable a better matching of values across samples we use binning on the
+## retention time and bin the data in 2 second intervals.
+chrM <- getChromatogram(mss, binSize=2)
+head(chrM)
+
+## The same with the spectra. Binning into 0.5 M/Z
+spcM <- getSpectrum(mss, binSize=0.5)
+head(spcM)
+```
+
+We can also plot the chromatogram and the spectrum with the `plotChromatogram`
+and `plotSpectrum` methods. As above, these methods would also allow to plot the
+BPC and the TIC as well as the TIS for all samples within an experiment into the
+same plot.
+
+```{r xcmsExtensions-MSslice-chromatogram-spectrum-plot, fig.cap="Chromatogram and spectrum of all samples for the specified MS data slice.", fig.align='center'}
+par(mfrow=c(1, 2))
+plotChromatogram(mss, binSize=2, type="l", col="#00000050")
+plotSpectrum(mss, binSize=0.5, type="h", col="#00000050")
+```
+
+In addition, we could use the `image` or the `levelplot` method to plot the
+chromatogram or spectrum matrix directly.
+
+```{r xcmsExtensions-MSslice-chromatogram-levelplot-plot, fig.cap="Chromatogram of each sample in the experiment represented as an image plot (levelplot). ", fig.align='center', fig.width=7, fig.height=5}
+levelplot(chrM, las=2, xlab="Retention time", ylab="Sample")
+```
+
+```{r xcmsExtensions-MSslice-spectrum-levelplot-plot, fig.cap="Spectrum of each sample in the experiment represented as an image plot (levelplot). ", fig.align='center', fig.width=7, fig.height=5}
+levelplot(spcM, las=2, xlab="M/Z", ylab="Sample")
+```
+
+If multiple different ranges (in M/Z and/or retention time space) are defined,
+the `msSlice` method would extract `MSslice` object for each of these and return
+the results as a `MSsliceList`.
+
+In the example below we extract a slice of MS data for each of the four peaks
+from the `xcms` vignette, Figure 3 from all samples.
+
+```{r }
+## Defining the mz and rt ranges.
+mzr <- rbind(c(300.0, 300.3),
+	     c(301.0, 301.3),
+	     c(298.0, 298.3),
+	     c(491.0, 491.4))
+rtr <- rbind(c(3300, 3450),
+	     c(3300, 3450),
+	     c(3100, 3250),
+	     c(3300, 3500))
+## Extracting the MS data slices; we are extracting the raw,
+## i.e. unaligned retention times.
+msl <- msSlice(xset, rtrange=rtr, mzrange=mzr, rt="raw")
+msl
+```
+
+Plotting the (base peak) chromatogram for each of the slices.
+
+```{r xcmsExtensions-MSsliceList-peaks-chrom-plot, fig.cap="Base peak chromatogram for each of the MS data slices across all samples.", fig.align='center'}
+par(mfrow=c(2, 2))
+lapply(slices(msl), plotChromatogram, type="l", col="#00000080")
+```
 
 # Data manipulations
 
@@ -284,8 +356,93 @@ the `image` function, to use the `levelplot` we first have to cast the
 ## bins along the M/Z dimension.
 M <- mapMatrix(binMzRtime(msd, rtBinSize=5, mzNbin=20))
 image(M, xlab="Retention time", ylab="M/Z")
-## levelplot(as.matrix(M))
 ```
+
+The same binning can also be applied to `MSslice` and `MSsliceList`
+objects. For both methods, the `mzrange` or `rtrange` across all samples is
+first cut into intervals and the binning is then performed, for each sample
+separately, but using the same bins.
+
+# Simple peak/compound identification
+
+One of the major problems in the metabolomics data analysis workflow is the
+identification of the compounds. To facilitate this step, the `xcmsExtensions`
+package provides an internal, simple, database that enables a fast and easy
+identification based on the compound mass.
+
+In the code chunk below we show some basic information on this database, that is
+bound to the variable name `scDb` (for *simple compound database*).
+
+```{r results='hold'}
+## Show some information on the database.
+scDb
+```
+
+Some of the methods defined by the `AnnotationDbi` Bioconductor package are
+implemented, thus we can ask for the available columns in the database with the
+`columns` method or get the SQLite database connection with the `dbconn`
+method.
+
+```{r }
+## List the available columns.
+columns(scDb)
+```
+
+To retrieve compounds in this database we can use the `compounds` method, that
+by default will return all of the available compounds. The `xcmsExtensions`
+package implements however also the filtering framework introduced by
+Bioconductor's `ensembldb` package. Thus, we can use an `CompoundidFilter` to
+select only specific compounds from the database.
+
+```{r }
+## Get all of the compounds from the database.
+allCmps <- compounds(scDb)
+nrow(allCmps)
+```
+
+The `compounds` method returns all database columns from the respective database
+table from the database. The method's `columns` argument allows to select only
+specific columns (selected from the available ones returned by the `columns`
+method shown above) that should be returned.
+
+As stated above, we can use this database also for a simple, mass based,
+peak/compound identification. The `mzmatch` method compares the provided masses
+with the M/Z values of all of the compounds in the database and returns for each
+mass all compounds that match the specified mass given a user specified mass
+difference threshold. This allowed difference can be defined with the `mzdev`
+and `ppm` arguments. By default, the method returns all matches allowing a
+difference of 10 ppm.
+
+```{r }
+## Defining compound masses.
+comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348)
+
+## Searching for matches in the database.
+Res <- mzmatch(comps, scDb)
+
+Res
+```
+
+The results are returned as a `list`, elements being a matrix with the match(es)
+for each specified mass. The column `idx` of the matrix contains the compound
+IDs and the column `deltaMz` the difference between the specified mass and the
+compound's M/Z value. In the code chunk below we're defining an
+`CompoundidFilter` for the identified compounds of the 4th mass and return its
+name and inchi key from the database.
+
+```{r }
+## Define CompoundidFilter for the matches of the selected mass
+cf <- CompoundidFilter(Res[[4]][, 1])
+
+## Getting the compounds' names and inchi keys from the database
+cmps <- compounds(scDb, filter=cf, columns=c("name", "inchikey"))
+cmps
+```
+
+# Using `xcmsExtensions` for an updated `xcms` data analysis workflow
+
+TODO: use the workflow in `xcms` but use as much as possible the stuff from the
+`xcmsExtensions`.
 
 # Alternative way to access data in `xcmsRaw` objects
 
@@ -362,7 +519,7 @@ Note that, if we load an `xcmsRaw` object for a `xcmsSet` object after having
 applied retention time correction, the retention times (scan time) we extract
 from that object will correspond to the corrected ones.
 
-```{r }
+```{r results='hold'}
 ## Grouping (alignment) of peaks/features
 xset <- group(xset)
 ## Retention time correction
@@ -372,36 +529,5 @@ xraw2 <- getXcmsRaw(xset)
 ```
 
 Extracting data by directly accessing the slots of an R-object is however no
-
-# Standardization of names etc
-
-We base the naming convention of methods classes etc on the review from Smith et
-al. [@Smith:2014di] and will implement as many methods and classes as
-possible (and meaningful) from the `ProtGenerics` and `MSnbase` packages.
-
--   **Definitions**
-    -   **chromatogram**: intensity *vs* (retention) time of the analytes.
-    -   **(mass) spectrum**: intensity *vs* m/z; all points with a single retention time
-        value (MS1, can be measured by MSMS again -> MS2).
-    -   **total ion spectrum (TIS)**: sum of all ion counts (intensity) with one RT
-        (i.e. the sum of all spectra). Basically the sum of the signal per m/z over
-        all RT resulting in intensity *vs* m/z (intensity *vs* m/z).
-    -   **total ion chromatogram (TIC)**: sum of all ion chromatograms, i.e. sum of ion
-        counts per RT over all m/z (intensity *vs* RT).
-    -   **extracted ion chromatogram (XIC)**: chromatogram (intensity *vs* RT) for a
-        fixed m/z.
-    -   **base peak chromatogram (BPC)**: most intense signal across m/z for each RT
-        (intensity *vs* RT).
-    -   **isotope trace**: signal produced by a single ion of a single analyte at a
-        particular charge state, fixed m/z (intensity *vs* RT for a fixed m/z). Sort
-        of a peak in RT for a fixed m/z.
-    -   **isotopic envelope trace** a.k.a. **feature**: group of isotopic traces of a
-        single analyte at a particular charge state (intensity *vs* RT *vs*
-        m/z). Represents all intensities/peaks in a RT, m/z region.
-
--   `ProtGenerics`
-
--   `MSnbase`
-    -   `MSmap` object.
 
 # References

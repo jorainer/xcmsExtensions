@@ -126,3 +126,42 @@ setMethod("initialize", "MSdata", function(.Object, ...){
         stop(OK)
     callNextMethod(.Object, ...)
 })
+
+
+####============================================================
+##  SimpleCompoundDb
+##
+##  SimpleCompoundDb constructor.
+####------------------------------------------------------------
+SimpleCompoundDb <- function(x){
+    ## x is supposed to be the file name of the SQLite database!
+    if(missing(x))
+        stop("No SQLite database file provided!")
+    lite <- dbDriver("SQLite")
+    con <- dbConnect(lite, dbname=x, flags=SQLITE_RO)
+    db <- new("SimpleCompoundDb", con=con)
+    ## Get the tables and store that.
+    theTab <- .doListTables(db)
+    db@tables <- theTab
+    return(db)
+}
+.validateSimpleCompoundDb <- function(object){
+    if(!is.null(object@con)){
+        con <- object@con
+        reqTab <- c("compound_basic", "metadata")
+        gotTab <- dbListTables(con)
+        if(!all(reqTab %in% gotTab)){
+            errStr <- paste0("The SQLite database does not provide the required",
+                             " tables ", paste(sQuote(reqTab), collapse=", "), "!")
+            return(errStr)
+        }
+    }
+    return(TRUE)
+}
+setValidity("SimpleCompoundDb", .validateSimpleCompoundDb)
+setMethod("initialize", "SimpleCompoundDb", function(.Object, ...){
+    OK <- .validateSimpleCompoundDb(.Object)
+    if(is(OK, "character"))
+        stop(OK)
+    callNextMethod(.Object, ...)
+})

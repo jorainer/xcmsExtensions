@@ -23,6 +23,7 @@
 \alias{getChromatogram,MSdata-method}
 \alias{plotChromatogram}
 \alias{plotChromatogram,MSdata-method}
+\alias{chromatogram,MSdata-method}
 \alias{getSpectrum}
 \alias{getSpectrum,MSdata-method}
 \alias{plotSpectrum}
@@ -56,11 +57,18 @@
 
 \S4method{binMz}{MSdata}(object, FUN=max, bins=NULL, nbin=NULL,
                          binSize=NULL)
+
 \S4method{binMzRtime}{MSdata}(object, FUN=max, mzNbin=NULL,
           mzBinSize=NULL, rtNbin=NULL, rtBinSize=NULL)
 
 \S4method{binRtime}{MSdata}(object, FUN=max, bins=NULL, nbin=NULL,
                             binSize=NULL)
+
+\S4method{chromatogram}{MSdata}(object, FUN=max, bins=NULL,
+                                    nbin=NULL, binSize=NULL, add=FALSE,
+                                    main=paste(format(mzrange(object),
+                                    2), collapse="-"),
+              xlab="Retention time", ylab="Intensity", ...)
 
 \S4method{getChromatogram}{MSdata}(object, FUN=max, bins=NULL,
                                    nbin=NULL, binSize=NULL, ...)
@@ -405,6 +413,10 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
 \section{Data visualizations}{
   \describe{
+    \item{chromatogram}{
+      See \code{plotChromatogram} below.
+    }
+
     \item{plotChromatogram}{
       The method plots the chromatogram of an \code{MSdata}
       object which is internally extracted by the \code{getChromatogram}

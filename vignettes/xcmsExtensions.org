@@ -146,7 +146,9 @@ introduction of the below listed classes and their methods.
 
 + =MSsliceList=: a list of several =MSslice= object. If e.g. different slices
   defined by different mz/rt ranges from a single sample (e.g. from a single
-  =xcmsRaw= object), these will be stored and returned in a =MSsliceList=.
+  =xcmsRaw= object), these will be stored and returned in a =MSsliceList=. Such
+  an =MSsliceList= object could for example be used to store the MS data of all
+  peaks identified across all samples.
 
 * Extracting MS data
 
@@ -306,6 +308,10 @@ the same slice from the 2-dimensional (m/z over rt) MS data across several
 samples. In the example below we define a slice representing one of the peaks in
 the =faahko= data set shown in Figure 4 in the =xcms= vignette.
 
+Alternatively we could extract an =MSslice= object representing the full MS data
+of all samples of an experiment by simply not providing an =rtrange= or
+=mzrange=.
+
 #+BEGIN_SRC R :ravel warning=FALSE, message=FALSE
   ## Extract the chromatogram of a m/z-rt slice across all samples.
   ## Defining the mz and rt ranges for the peak in the xcms
@@ -316,9 +322,82 @@ the =faahko= data set shown in Figure 4 in the =xcms= vignette.
   mss
 #+END_SRC
 
-Alternatively we could extract an =MSslice= object representing the full MS data
-of all samples of an experiment by simply not providing an =rtrange= or
-=mzrange=.
+Most of the methods defined for =MSdata= objects are also available for
+=MSslice= objects. In the example below we thus extract the chromatogram and the
+spectrum from the =MSdata= object and get for each of the two as a result a
+matrix, rows being either unique retention times or M/Z values and columns
+samples.
+
+#+BEGIN_SRC R
+  ## Extracting the chromatogram from the MSslice object. To reduce the data points
+  ## and enable a better matching of values across samples we use binning on the
+  ## retention time and bin the data in 2 second intervals.
+  chrM <- getChromatogram(mss, binSize=2)
+  head(chrM)
+
+  ## The same with the spectra. Binning into 0.5 M/Z
+  spcM <- getSpectrum(mss, binSize=0.5)
+  head(spcM)
+#+END_SRC
+
+We can also plot the chromatogram and the spectrum with the =plotChromatogram=
+and =plotSpectrum= methods. As above, these methods would also allow to plot the
+BPC and the TIC as well as the TIS for all samples within an experiment into the
+same plot.
+
+#+NAME: xcmsExtensions-MSslice-chromatogram-spectrum-plot
+#+BEGIN_SRC R :ravel fig.cap="Chromatogram and spectrum of all samples for the specified MS data slice.", fig.align='center'
+  par(mfrow=c(1, 2))
+  plotChromatogram(mss, binSize=2, type="l", col="#00000050")
+  plotSpectrum(mss, binSize=0.5, type="h", col="#00000050")
+
+#+END_SRC
+
+In addition, we could use the =image= or the =levelplot= method to plot the
+chromatogram or spectrum matrix directly.
+
+#+NAME: xcmsExtensions-MSslice-chromatogram-levelplot-plot
+#+BEGIN_SRC R :ravel fig.cap="Chromatogram of each sample in the experiment represented as an image plot (levelplot). ", fig.align='center', fig.width=7, fig.height=5
+  levelplot(chrM, las=2, xlab="Retention time", ylab="Sample")
+#+END_SRC
+
+#+NAME: xcmsExtensions-MSslice-spectrum-levelplot-plot
+#+BEGIN_SRC R :ravel fig.cap="Spectrum of each sample in the experiment represented as an image plot (levelplot). ", fig.align='center', fig.width=7, fig.height=5
+  levelplot(spcM, las=2, xlab="M/Z", ylab="Sample")
+#+END_SRC
+
+# MSsliceList objects
+If multiple different ranges (in M/Z and/or retention time space) are defined,
+the =msSlice= method would extract =MSslice= object for each of these and return
+the results as a =MSsliceList=.
+
+In the example below we extract a slice of MS data for each of the four peaks
+from the =xcms= vignette, Figure 3 from all samples.
+
+#+BEGIN_SRC R
+  ## Defining the mz and rt ranges.
+  mzr <- rbind(c(300.0, 300.3),
+               c(301.0, 301.3),
+               c(298.0, 298.3),
+               c(491.0, 491.4))
+  rtr <- rbind(c(3300, 3450),
+               c(3300, 3450),
+               c(3100, 3250),
+               c(3300, 3500))
+  ## Extracting the MS data slices; we are extracting the raw,
+  ## i.e. unaligned retention times.
+  msl <- msSlice(xset, rtrange=rtr, mzrange=mzr, rt="raw")
+  msl
+#+END_SRC
+
+Plotting the (base peak) chromatogram for each of the slices.
+
+#+NAME: xcmsExtensions-MSsliceList-peaks-chrom-plot
+#+BEGIN_SRC R :ravel fig.cap="Base peak chromatogram for each of the MS data slices across all samples.", fig.align='center'
+  par(mfrow=c(2, 2))
+  lapply(slices(msl), plotChromatogram, type="l", col="#00000080")
+#+END_SRC
+
 
 * Data manipulations
 
@@ -373,10 +452,96 @@ the =image= function, to use the =levelplot= we first have to cast the
   ## bins along the M/Z dimension.
   M <- mapMatrix(binMzRtime(msd, rtBinSize=5, mzNbin=20))
   image(M, xlab="Retention time", ylab="M/Z")
-  ## levelplot(as.matrix(M))
+#+END_SRC
+
+The same binning can also be applied to =MSslice= and =MSsliceList=
+objects. For both methods, the =mzrange= or =rtrange= across all samples is
+first cut into intervals and the binning is then performed, for each sample
+separately, but using the same bins.
+
+
+
+* Simple peak/compound identification
+
+One of the major problems in the metabolomics data analysis workflow is the
+identification of the compounds. To facilitate this step, the =xcmsExtensions=
+package provides an internal, simple, database that enables a fast and easy
+identification based on the compound mass.
+
+In the code chunk below we show some basic information on this database, that is
+bound to the variable name =scDb= (for /simple compound database/).
+
+#+BEGIN_SRC R :ravel results='hold'
+  ## Show some information on the database.
+  scDb
+#+END_SRC
+
+Some of the methods defined by the =AnnotationDbi= Bioconductor package are
+implemented, thus we can ask for the available columns in the database with the
+=columns= method or get the SQLite database connection with the =dbconn=
+method.
+
+#+BEGIN_SRC R
+  ## List the available columns.
+  columns(scDb)
+#+END_SRC
+
+To retrieve compounds in this database we can use the =compounds= method, that
+by default will return all of the available compounds. The =xcmsExtensions=
+package implements however also the filtering framework introduced by
+Bioconductor's =ensembldb= package. Thus, we can use an =CompoundidFilter= to
+select only specific compounds from the database.
+
+#+BEGIN_SRC R
+  ## Get all of the compounds from the database.
+  allCmps <- compounds(scDb)
+  nrow(allCmps)
+#+END_SRC
+
+The =compounds= method returns all database columns from the respective database
+table from the database. The method's =columns= argument allows to select only
+specific columns (selected from the available ones returned by the =columns=
+method shown above) that should be returned.
+
+As stated above, we can use this database also for a simple, mass based,
+peak/compound identification. The =mzmatch= method compares the provided masses
+with the M/Z values of all of the compounds in the database and returns for each
+mass all compounds that match the specified mass given a user specified mass
+difference threshold. This allowed difference can be defined with the =mzdev=
+and =ppm= arguments. By default, the method returns all matches allowing a
+difference of 10 ppm.
+
+#+BEGIN_SRC R
+  ## Defining compound masses.
+  comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348)
+
+  ## Searching for matches in the database.
+  Res <- mzmatch(comps, scDb)
+
+  Res
+#+END_SRC
+
+The results are returned as a =list=, elements being a matrix with the match(es)
+for each specified mass. The column =idx= of the matrix contains the compound
+IDs and the column =deltaMz= the difference between the specified mass and the
+compound's M/Z value. In the code chunk below we're defining an
+=CompoundidFilter= for the identified compounds of the 4th mass and return its
+name and inchi key from the database.
+
+#+BEGIN_SRC R
+  ## Define CompoundidFilter for the matches of the selected mass
+  cf <- CompoundidFilter(Res[[4]][, 1])
+
+  ## Getting the compounds' names and inchi keys from the database
+  cmps <- compounds(scDb, filter=cf, columns=c("name", "inchikey"))
+  cmps
 #+END_SRC
 
 
+* Using =xcmsExtensions= for an updated =xcms= data analysis workflow
+
+TODO: use the workflow in =xcms= but use as much as possible the stuff from the
+=xcmsExtensions=.
 
 
 * Alternative way to access data in =xcmsRaw= objects
@@ -455,7 +620,7 @@ Note that, if we load an =xcmsRaw= object for a =xcmsSet= object after having
 applied retention time correction, the retention times (scan time) we extract
 from that object will correspond to the corrected ones.
 
-#+BEGIN_SRC R
+#+BEGIN_SRC R :ravel results='hold'
   ## Grouping (alignment) of peaks/features
   xset <- group(xset)
   ## Retention time correction
@@ -467,7 +632,7 @@ from that object will correspond to the corrected ones.
 Extracting data by directly accessing the slots of an R-object is however no
 
 
-* Standardization of names etc
+* Standardization of names etc					   :noexport:
 
 We base the naming convention of methods classes etc on the review from Smith et
 al. \cite{Smith:2014di} and will implement as many methods and classes as
@@ -499,10 +664,35 @@ possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
 
   - =MSmap= object.
 
+
+* Creation of an =SimpleCompoundDb=				   :noexport:
+:PROPERTIES:
+:eval: never
+:END:
+
+Assuming we have downloaded the whole HMDB (http://www.hmdb.ca/) content as a
+zip (http://www.hmdb.ca/downloads) and have unzipped it to the folder
+=~/tmp/HMDB=. Note that we have to delete the large xml file containing all of
+the metabolites first, i.e. the /hmdb_metabolites.xml/ file.
+
+#+BEGIN_SRC R
+  dbFile <- xcmsExtensions:::.createSimpleCompoundDb(hmdbPath="~/tmp/HMDB",
+                                                     hmdbVersion="2016-04-03")
+#+END_SRC
+
+Alternatively we can also split the file into small peaces... hm , doesn't work!!!
+
+=csplit hmdb_metabolites.xml '/^<?xml version="1.0" encoding="UTF-8"?>$/'=
+
+=awk '/<?xml/{filename=NR".xml"}; {print > filename}' hmdb_metabolites.xml=
+
+
 * TODOs								   :noexport:
 
-** TODO Implement =getXIC= methods.
-
+** CANCELED Implement =getXIC= methods.
+   CLOSED: [2016-04-05 Tue 15:22]
+   - State "CANCELED"   from "TODO"       [2016-04-05 Tue 15:22] \\
+     Can all be done with the =plotChromatogram= method.
 + [ ] =getXIC=: providing rtrange, mzrange, extract the ion chromatogram.
 + [ ] =getTIC=:
 + [ ] =getBPC=:
@@ -510,12 +700,15 @@ possible (and meaningful) from the =ProtGenerics= and =MSnbase= packages.
 + [ ] =getWhatever=: just extract everything from the 2-dimensional thing.
 
 ** TODO Implement =calibrate= method.
-** TODO Stuff to work with the /HMDB/ xml files?
+** DONE Stuff to work with the /HMDB/ xml files?
+   CLOSED: [2016-04-05 Tue 15:22]
+   - State "DONE"       from "TODO"       [2016-04-05 Tue 15:22]
 ** DONE =scantime= method for =xcmsRaw=.
    CLOSED: [2016-03-30 Wed 15:53]
    - State "DONE"       from "TODO"       [2016-03-30 Wed 15:53]
-** TODO =MSslice= class [3/5]
-
+** DONE =MSslice= class [5/5]
+   CLOSED: [2016-04-05 Tue 15:22]
+   - State "DONE"       from "TODO"       [2016-04-05 Tue 15:22]
 The =MSslice= represents a part of the data defined by an =rtrange= and an
 =mzrange=. Would be nice to store that for one such range across several
 files. But this again requires that the times AND mz are synced.
@@ -526,10 +719,10 @@ files. But this again requires that the times AND mz are synced.
   and one for the chromatogram (intensity vs rt). In both cases we have to sum
   up intensities for /close/ values either on rt or on mz.
 + [X] Documentation.
-+ [ ] Examples to the vignette.
-+ [ ] =binMz=, =binRt= and both.
++ [X] Examples to the vignette.
++ [X] =binMz=, =binRt= and both.
 
-** TODO =MSsliceList= class [2/3]
+** TODO =MSsliceList= class [2/6]
 
 Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 
@@ -538,10 +731,12 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [ ] Add names slot.
 + [ ] Documentation.
 + [ ] Examples to the vignette.
++ [ ] =binMz=, =binRt= and both.
 
-** TODO =MSdata= class [7/8]
-
-+ [ ] =chromatogram=: plot the chromatogram of the =MSdata= object.
+** DONE =MSdata= class [8/8]
+   CLOSED: [2016-04-05 Tue 15:22]
+   - State "DONE"       from "TODO"       [2016-04-05 Tue 15:22]
++ [X] =chromatogram=: plot the chromatogram of the =MSdata= object.
 + [X] =getChromatogram=: extract a chromatogram.
 + [X] =plotChromatogram=: plot a chromatogram; uses =getChromatogram= to extract
   the chromatogram.
@@ -553,16 +748,24 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [X] =mapMatrix= method to extract a matrix representing the data (two-d).
 
 
-** TODO Easy identification database.
+** TODO Easy identification database. [1/3]
 
-+ [ ] Create a simple database (table) with mass, internal id, external id,
++ [X] Create a simple database (table) with mass, internal id, external id,
   source and name to easily and fast identify peaks based on mass alone.
 + [ ] Method =simpleIdentify= method.
-+ [ ] Implement a method =matchMz= that allows to
++ [ ] Implement a method =mzmatch= that allows to
   - Identify e.g. peaks in the data (if applied to an =xcmsSet= object).
   - Annotate peaks (if applied to an annotation database object).
 
 ** TODO shiny app to visualize the data of an =xcmsSet= or =xcmsRaw= object.
+
+** TODO Finish help and vignette [4/5]
+
++ [X] Help on =SimpleCompoundDb=.
++ [X] Help on =CompoundidFilter=.
++ [X] Vignette: use case for compound database.
++ [X] Vignette: example for =mzmatch=.
++ [ ] Vignette: /standard/ workflow with new methods.
 
 
 * References

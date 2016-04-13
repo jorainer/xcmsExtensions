@@ -258,6 +258,20 @@ setMethod("plotChromatogram", "MSdata",
                   plot(dat[, 1], dat[, 2], main=main, xlab=xlab, ylab=ylab, ...)
               }
           })
+####============================================================
+##  chromatogram
+##
+##  The same...
+####------------------------------------------------------------
+setMethod("chromatogram", "MSdata",
+          function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
+                   add=FALSE, main=paste(format(mzrange(object), 2), collapse="-"),
+                   xlab="Retention time", ylab="Intensity", ...){
+              plotChromatogram(object=object, FUN=FUN, bins=bins, nbin=nbin,
+                               binSize=binSize, add=add, main=main, xlab=xlab,
+                               ylab=ylab, ...)
+          })
+
 
 ####============================================================
 ##  getSpectrum

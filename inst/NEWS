@@ -1,3 +1,18 @@
+CHANGES IN VERSION 0.0.4
+------------------------
+
+NEW FEATURES:
+    o SimpleCompoundDb object allowing a simple compound identification.
+    o SimpleCompoundDb instance containing some basic compound data from
+      HMDB.
+    o binMz, binRtime and binMzRtime for MSslice objects.
+    o matchmz method to match M/Z values allowing some shift.
+    o compounds method for the SimpleCompoundDb along with lots of internal infrastructure
+      work.
+    o CompoundidFilter (extending BasicFilter from the ensembldb package).
+    o matchmz method for SimpleCompoundDb database.
+
+
 CHANGES IN VERSION 0.0.3
 ------------------------
 

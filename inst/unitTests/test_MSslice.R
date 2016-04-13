@@ -10,6 +10,12 @@ xset <- faahko
 suppressWarnings(
     xraw <- getXcmsRaw(xset, 1)
 )
+globalMzr <- c(300, 320)
+globalRtr <- c(2500, 2700)
+suppressWarnings(
+    globalMss <- msSlice(xset, mzrange=globalMzr, rtrange=globalRtr)
+)
+
 
 test_MSslice <- function(){
     ## Generate one from a simple subset.
@@ -37,11 +43,14 @@ test_MSslice <- function(){
 
 test_getChromatogram <- function(){
     do.plot <- FALSE
-    mzr <- c(302, 302.5)
-    rtr <- c(2500, 2700)
-    suppressWarnings(
-        mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
-    )
+    mzr <- globalMzr
+    rtr <- globalRtr
+    mss <- globalMss
+    ## mzr <- c(302, 302.5)
+    ## rtr <- c(2500, 2700)
+    ## suppressWarnings(
+    ##     mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
+    ## )
     Test <- lapply(msData(mss), getChromatogram)
 
     Test <- xcmsExtensions:::.getChromList(mss)
@@ -83,11 +92,14 @@ test_getChromatogram <- function(){
 
 test_getSpectrum <- function(){
     do.plot <- FALSE
-    mzr <- c(300, 303)
-    rtr <- c(2500, 2700)
-    suppressWarnings(
-        mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
-    )
+    mzr <- globalMzr
+    rtr <- globalRtr
+    mss <- globalMss
+    ## mzr <- c(300, 303)
+    ## rtr <- c(2500, 2700)
+    ## suppressWarnings(
+    ##     mss <- msSlice(xset, mzrange=mzr, rtrange=rtr)
+    ## )
     spcM <- getSpectrum(mss)
 
     suppressWarnings(
@@ -100,4 +112,55 @@ test_getSpectrum <- function(){
     }
     ## Has to be increasingly.
     checkEquals(order(as.numeric(rownames(spcM))), 1:nrow(spcM))
+}
+
+test_binMz <- function(){
+    do.plot <- FALSE
+    mzr <- globalMzr
+    rtr <- globalRtr
+    mss <- globalMss
+
+    ## Test the binning and also evaluate the @call
+    bins <- xcmsExtensions:::.getBins(mzrange(mss), nbin=10)
+    msd <- msData(xraw, rtrange=rtr, mzrange=mzr)
+    msdBinned <- binMz(msd, bins=bins)
+
+    mssBinned <- binMz(mss, nbin=10)
+    checkEquals(mzrange(msdBinned), mzrange(mssBinned))
+
+    ## Check if the binned data is the same...
+    checkEquals(as.matrix(msdBinned), as.matrix(msData(mssBinned)[[1]]))
+}
+
+test_binRtime <- function(){
+    do.plot <- FALSE
+    mzr <- globalMzr
+    rtr <- globalRtr
+    mss <- globalMss
+
+    ## Test the binning and also evaluate the @call
+    bins <- xcmsExtensions:::.getBins(rtrange(mss), binSize=5)
+    msd <- msData(xraw, rtrange=rtr, mzrange=mzr)
+    msdBinned <- binRtime(msd, bins=bins)
+
+    mssBinned <- binRtime(mss, binSize=5)
+    checkEquals(mzrange(msdBinned), mzrange(mssBinned))
+    checkEquals(rtrange(msdBinned), rtrange(mssBinned))
+
+    ## Check if the binned data is the same...
+    checkEquals(as.matrix(msdBinned), as.matrix(msData(mssBinned)[[1]]))
+}
+
+
+test_binMzRtime <- function(){
+    do.plot <- FALSE
+    mzr <- globalMzr
+    rtr <- globalRtr
+    mss <- globalMss
+
+    mzB <- binMz(mss, nbin=10)
+    mzRtB <- binRtime(mzB, binSize=5)
+
+    mssB <- binMzRtime(mss, mzNbin=10, rtBinSize=5)
+    checkEquals(as.matrix(msData(mzRtB)[[1]]), as.matrix(msData(mssB)[[1]]))
 }

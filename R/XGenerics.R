@@ -53,6 +53,43 @@ setGeneric("rtranges", function(object, ...)
 setGeneric("intranges", function(object, ...)
     standardGeneric("intranges"))
 
+## Database stuff:
+## That one could be imported from ensembldb
+if(!isGeneric("listTables")){
+    setGeneric("listTables", function(x, ...)
+        standardGeneric("listTables"))
+}
+setGeneric("compounds", function(x, columns, filter=list(), ...)
+    standardGeneric("compounds"))
+setGeneric("cleanColumns", function(x, columns, ...)
+    standardGeneric("cleanColumns"))
+setGeneric("cleanTables", function(x, tables, ...)
+    standardGeneric("cleanTables"))
+setGeneric("cleanFilter", function(x, filter, ...)
+    standardGeneric("cleanFilter"))
+setGeneric("buildQuery", function(x, ...)
+    standardGeneric("buildQuery"))
+setGeneric("prefixColumns", function(x, columns, clean=TRUE, with.tables)
+    standardGeneric("prefixColumns"))
+setGeneric("buildJoinQuery", function(x, ...)
+    standardGeneric("buildJoinQuery"))
+setGeneric("buildFilterQuery", function(x, ...)
+    standardGeneric("buildFilterQuery"))
+setGeneric("sortTablesByDegree", function(x, tables, ...)
+    standardGeneric("sortTablesByDegree"))
+setGeneric("addRequiredJoinTables", function(x, tables)
+    standardGeneric("addRequiredJoinTables"))
+setGeneric("getWhat", function(x, ...)
+    standardGeneric("getWhat"))
+
+
+## Utils and alike
+setGeneric("grow", function(x, by, ...)
+    standardGeneric("grow"))
+setGeneric("mzmatch", function(x, mz, mzdev=0, ppm=5, ...)
+    standardGeneric("mzmatch"))
+
+
 ####============================================================
 ##  internal methods.
 setGeneric("rtimeOrdered", function(object, ...)

@@ -18,7 +18,10 @@
 \alias{plotChromatogram,MSslice-method}
 \alias{getSpectrum,MSslice-method}
 \alias{plotSpectrum,MSslice-method}
-
+%% Data manipulation stuff...
+\alias{binMz,MSslice-method}
+\alias{binRtime,MSslice-method}
+\alias{binMzRtime,MSslice-method}
 
 \title{MS data subsets of several samples}
 
@@ -41,6 +44,15 @@
   \code{\link[xcms]{xcmsRaw}}) object.
 }
 \usage{
+
+\S4method{binMz}{MSslice}(object, FUN=max, bins=NULL, nbin=NULL,
+                         binSize=NULL)
+
+\S4method{binMzRtime}{MSslice}(object, FUN=max, mzNbin=NULL,
+          mzBinSize=NULL, rtNbin=NULL, rtBinSize=NULL)
+
+\S4method{binRtime}{MSslice}(object, FUN=max, bins=NULL, nbin=NULL,
+                            binSize=NULL)
 
 \S4method{getChromatogram}{MSslice}(object, FUN=max, bins=NULL,
                            nbin=NULL, binSize=NULL, ...)
@@ -86,10 +98,9 @@ MSslice(...)
 
   (in alphabetic order)
 
-
   \item{bins}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: numeric
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and \code{binRtime}: numeric
     vector specifying the bins to bin the retention time. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
     objects for more details on the binning.
@@ -97,7 +108,7 @@ MSslice(...)
 
   \item{binSize}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: numeric
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and \code{binRtime}: numeric
     (length 1) specifying the bin width/size. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
     objects for more details on the binning.
@@ -105,7 +116,8 @@ MSslice(...)
 
   \item{FUN}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: function
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz},
+    \code{binMzRtime} and \code{binRtime}: function
     that should be used to aggregate intensities within a bin. By
     default the largest intensity within a bin is selected. See
     \code{getChromatogram} method description for \code{\link{MSdata}}
@@ -138,13 +150,23 @@ MSslice(...)
     For \code{plotChromatogram} and \code{plotSpectrum}: the title of the plot.
   }
 
+  \item{mzNbin}{
+    For \code{binMzRtime}: numeric (length 1) specifying the number of
+    bins to bin the M/Z range. See also argument \code{bin}.
+  }
+
+  \item{mzBinSize}{
+    For \code{binMzRtime}: numeric (length 1) specifying the size of
+    the bins along M/Z range. See also argument \code{binSize}.
+  }
+
   \item{mzrange}{
     A numeric vector defining the m/z-value range of the slice.
   }
 
   \item{nbin}{
     For \code{getChromatogram}, \code{getSpectrum},
-    \code{plotChromatogram} and \code{plotSpectrum}: numeric
+    \code{plotChromatogram}, \code{plotSpectrum}, \code{binMz} and \code{binRtime}: numeric
     (length 1) specifying the number of bins in which the retention time
     range should be binned. See \code{getChromatogram} method
     description for \code{\link{MSdata}} objects for more details on the
@@ -163,6 +185,16 @@ MSslice(...)
     For \code{msSlice}: either \code{"raw"} or \code{"corrected"} to
     specify whether the raw or retention-time corrected scan times
     should be used.
+  }
+
+  \item{rtNbin}{
+    For \code{binMzRtime}: numeric (length 1) specifying the number of
+    bins to bin the retention time range. See also argument \code{bin}.
+  }
+
+  \item{rtBinSize}{
+    For \code{binMzRtime}: numeric (length 1) specifying the size of
+    the bins along retention time range. See also argument \code{binSize}.
   }
 
   \item{rtrange}{
@@ -338,6 +370,38 @@ MSslice(...)
   }
 }
 
+\section{Data manipulations}{
+  \describe{
+    \item{binMz}{
+      This method cuts the M/Z range of an \code{MSslice} object in equal
+      spaced bins and aggregates all intensity values with an M/Z value
+      falling within the bin and the same retention time.
+
+      For details on the method arguments and the binning see the help
+      for the \code{getChromatogram} method.
+
+      The method returns an \code{MSslice} object.
+    }
+
+    \item{binMzRtime}{
+      This method performs a binning first in M/Z dimension followed by
+      a retention time binning.
+
+      For details on binning see the \code{getChromatogram} method.
+
+      The method returns a \code{MSslice} object with the data binned
+      both on M/Z and retention time dimension.
+    }
+
+    \item{binRtime}{
+      Same as the \code{binMz} method, but for binning along the
+      retention time dimension.
+
+      The method returns an \code{MSslice} object.
+    }
+  }
+}
+
 \value{
   Refer to the method and function description above for detailed
   information on the returned result object.
@@ -439,6 +503,17 @@ msSlice(msd)
 ## MSslice constructor to generate a two-sample MSslice object.
 msd2 <- msData(getXcmsRaw(xset, 2))
 MSslice(msd, msd2)
+
+
+####-------------
+##  Data manipulations
+
+## We bin the MSslice object in 5 second retention time bins along the
+## retention time dimension. Each MSdata object within the MSslice is
+## binned in the same bins.
+mssB <- binRtime(mss, binSize=5)
+mss
+mssB
 
 }
 \keyword{classes}

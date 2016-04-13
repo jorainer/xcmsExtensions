@@ -57,3 +57,39 @@ setClass("MSdata",
              intrange=numeric())
          )
 
+
+####============================================================
+##  SimpleCompoundDb
+##
+##  Amazing and crazy metabolite/compound database. By design this
+##  should in the end hold some basic data from a lot of different
+##  dabases.
+####------------------------------------------------------------
+setClass("SimpleCompoundDb",
+         representation(con="DBIConnection", tables="list", .properties="list"),
+         prototype=list(con=NULL, .properties=list(), tables=list()))
+
+
+####============================================================
+##  CompoundidFilter
+##
+####------------------------------------------------------------
+setClass("CompoundidFilter", contains="BasicFilter",
+         prototype=list(
+             condition="=",
+             value="",
+             .valueIsCharacter=TRUE
+            )
+        )
+CompoundidFilter <- function(value, condition="="){
+    if(missing(value)){
+        stop("A filter without a value makes no sense!")
+    }
+    if(length(value) > 1){
+        if(condition=="=")
+            condition="in"
+        if(condition=="!=")
+            condition="not in"
+    }
+    return(new("CompoundidFilter", condition=condition, value=as.character(value)))
+}

@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metabolite>
+  <version>3.5</version>
+  <creation_date>2005-11-16 08:48:42 -0700</creation_date>
+  <update_date>2013-05-13 17:08:01 -0600</update_date>
+  <accession>HMDB01347</accession>
+  <secondary_accessions>
+    <accession>HMDB04196</accession>
+  </secondary_accessions>
+  <name>Isopentenyl pyrophosphate</name>
+  <description>Isopentenyl pyrophosphate, IPP or isopentenyl diphosphate, is an intermediate in the HMG-CoA reductase pathway used by organisms in the biosynthesis of terpenes and terpenoids. IPP is formed from Mevalonate-5-pyrophosphate, in a reaction catalyzed by the enzyme mevalonate-5-pyrophosphate decarboxylase. (wikipedia).</description>
+  <synonyms>
+    <synonym>3-Methyl-3-butenyl pyrophosphate</synonym>
+    <synonym>delta(3)-Isopentenyl-PP</synonym>
+    <synonym>delta-3-Isopentenyl pyrophosphat</synonym>
+    <synonym>Delta3-isopentenyl diphosphate</synonym>
+    <synonym>Delta3-methyl-3-butenyl diphosphate</synonym>
+    <synonym>Diphosphoric acid mono(3-methyl-3-butenyl) ester</synonym>
+    <synonym>IPP</synonym>
+    <synonym>IPR</synonym>
+    <synonym>Isopentenyl diphosphate</synonym>
+    <synonym>Isopentenyl pyrophosphate</synonym>
+    <synonym>Isopentenyl-pp</synonym>
+    <synonym>Mono(3-methyl-3-butenyl) diphosphate</synonym>
+  </synonyms>
+  <chemical_formula>C5H12O7P2</chemical_formula>
+  <average_molecular_weight>246.0921</average_molecular_weight>
+  <monisotopic_moleculate_weight>246.005825762</monisotopic_moleculate_weight>
+  <iupac_name>({hydroxy[(3-methylbut-3-en-1-yl)oxy]phosphoryl}oxy)phosphonic acid</iupac_name>
+  <traditional_iupac>[hydroxy(3-methylbut-3-en-1-yl)oxyphosphoryl]oxyphosphonic acid</traditional_iupac>
+  <cas_registry_number>358-71-4</cas_registry_number>
+  <smiles>CC(=C)CCOP(O)(=O)OP(O)(O)=O</smiles>
+  <inchi>InChI=1S/C5H12O7P2/c1-5(2)3-4-11-14(9,10)12-13(6,7)8/h1,3-4H2,2H3,(H,9,10)(H2,6,7,8)</inchi>
+  <inchikey>InChIKey=NUHSROFQTUXZQQ-UHFFFAOYSA-N</inchikey>
+  <taxonomy>
+    <kingdom>Organic Compounds</kingdom>
+    <super_class>Aliphatic Acyclic Compounds</super_class>
+    <class>Organic Oxoanionic Compounds</class>
+    <other_descriptors>
+      <descriptor>Aliphatic Acyclic Compounds</descriptor>
+      <descriptor>C5 isoprenoids (hemiterpenes)(KEGG)</descriptor>
+      <descriptor>C5 isoprenoids (hemiterpenes)(Lipidmaps)</descriptor>
+      <descriptor>prenol phosphate(ChEBI)</descriptor>
+    </other_descriptors>
+    <substituents>
+      <substituent>acyclic alkene</substituent>
+      <substituent>isoprene</substituent>
+      <substituent>organic phosphite</substituent>
+      <substituent>phosphoric acid ester</substituent>
+    </substituents>
+    <direct_parent>Organic Pyrophosphates</direct_parent>
+  </taxonomy>
+  <ontology>
+    <status>Expected and Not Quantified</status>
+    <origins>
+      <origin>Endogenous</origin>
+    </origins>
+    <biofunctions>
+      <biofunction>Component of Terpenoid biosynthesis</biofunction>
+    </biofunctions>
+    <applications>
+    </applications>
+    <cellular_locations>
+      <cellular_location>Peroxisome</cellular_location>
+    </cellular_locations>
+  </ontology>
+  <state>Solid</state>
+  <experimental_properties>
+  </experimental_properties>
+  <predicted_properties>
+    <property>
+      <kind>logp</kind>
+      <value>0.04</value>
+      <source>ALOGPS</source>
+    </property>
+    <property>
+      <kind>logs</kind>
+      <value>-1.57</value>
+      <source>ALOGPS</source>
+    </property>
+    <property>
+      <kind>solubility</kind>
+      <value>6.69 g/L</value>
+      <source>ALOGPS</source>
+    </property>
+    <property>
+      <kind>logp</kind>
+      <value>0.2</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>pka_strongest_acidic</kind>
+      <value>1.78</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>iupac</kind>
+      <value>({hydroxy[(3-methylbut-3-en-1-yl)oxy]phosphoryl}oxy)phosphonic acid</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>average_mass</kind>
+      <value>246.0921</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>mono_mass</kind>
+      <value>246.005825762</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>smiles</kind>
+      <value>CC(=C)CCOP(O)(=O)OP(O)(O)=O</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>formula</kind>
+      <value>C5H12O7P2</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>inchi</kind>
+      <value>InChI=1S/C5H12O7P2/c1-5(2)3-4-11-14(9,10)12-13(6,7)8/h1,3-4H2,2H3,(H,9,10)(H2,6,7,8)</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>inchikey</kind>
+      <value>InChIKey=NUHSROFQTUXZQQ-UHFFFAOYSA-N</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>polar_surface_area</kind>
+      <value>113.29</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>refractivity</kind>
+      <value>48.21</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>polarizability</kind>
+      <value>19.06</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>rotatable_bond_count</kind>
+      <value>6</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>acceptor_count</kind>
+      <value>5</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>donor_count</kind>
+      <value>3</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>physiological_charge</kind>
+      <value>-2</value>
+      <source>ChemAxon</source>
+    </property>
+    <property>
+      <kind>formal_charge</kind>
+      <value>0</value>
+      <source>ChemAxon</source>
+    </property>
+  </predicted_properties>
+  <spectra>
+  </spectra>
+  <biofluid_locations>
+  </biofluid_locations>
+  <tissue_locations>
+    <tissue>Spleen</tissue>
+  </tissue_locations>
+  <pathways>
+    <pathway>
+      <name>Steroid Biosynthesis</name>
+      <smpdb_id>SMP00023</smpdb_id>
+      <kegg_map_id>map00100</kegg_map_id>
+    </pathway>
+  </pathways>
+  <normal_concentrations>
+  </normal_concentrations>
+  <abnormal_concentrations>
+  </abnormal_concentrations>
+  <diseases>
+  </diseases>
+  <drugbank_id/>
+  <drugbank_metabolite_id/>
+  <phenol_explorer_compound_id/>
+  <phenol_explorer_metabolite_id/>
+  <foodb_id>FDB022569</foodb_id>
+  <knapsack_id/>
+  <chemspider_id>1158</chemspider_id>
+  <kegg_id>C00129</kegg_id>
+  <biocyc_id/>
+  <bigg_id>33956</bigg_id>
+  <wikipidia>Isopentenyl pyrophosphate</wikipidia>
+  <nugowiki>1209</nugowiki>
+  <metagene/>
+  <metlin_id>6181</metlin_id>
+  <pubchem_compound_id>1195</pubchem_compound_id>
+  <het_id>IPE</het_id>
+  <chebi_id>16584</chebi_id>
+  <synthesis_reference>Kao, Chai-Lin; Kittleman, William; Zhang, Hua; Seto, Haruo; Liu, Hung-Wen. Stereochemical Analysis of Isopentenyl Diphosphate Isomerase Type II from Staphylococcus aureus Using Chemically Synthesized (S)- and (R)-[2-2H]Isopentenyl Diphosphates.Organic Let</synthesis_reference>
+  <general_references>
+    <reference>
+      <reference_text>Daubenberger CA, Salomon M, Vecino W, Hubner B, Troll H, Rodriques R, Patarroyo ME, Pluschke G: Functional and structural similarity of V gamma 9V delta 2 T cells in humans and Aotus monkeys, a primate infection model for Plasmodium falciparum malaria. J Immunol. 2001 Dec 1;167(11):6421-30.</reference_text>
+      <pubmed_id>11714808</pubmed_id>
+    </reference>
+  </general_references>
+  <protein_associations>
+    <protein>
+      <protein_accession>HMDBP01540</protein_accession>
+      <name>Isopentenyl-diphosphate Delta-isomerase 2</name>
+      <uniprot_id>Q9BXS1</uniprot_id>
+      <gene_name>IDI2</gene_name>
+      <protein_type>Unknown</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP00931</protein_accession>
+      <name>Geranylgeranyl pyrophosphate synthase</name>
+      <uniprot_id>O95749</uniprot_id>
+      <gene_name>GGPS1</gene_name>
+      <protein_type>Enzyme</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP01016</protein_accession>
+      <name>Diphosphomevalonate decarboxylase</name>
+      <uniprot_id>P53602</uniprot_id>
+      <gene_name>MVD</gene_name>
+      <protein_type>Enzyme</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP00932</protein_accession>
+      <name>Farnesyl pyrophosphate synthase</name>
+      <uniprot_id>P14324</uniprot_id>
+      <gene_name>FDPS</gene_name>
+      <protein_type>Enzyme</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP09382</protein_accession>
+      <name>tRNA isopentenyltransferase 1 variant</name>
+      <uniprot_id>Q53F11</uniprot_id>
+      <gene_name>TRIT1</gene_name>
+      <protein_type>Enzyme</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP01541</protein_accession>
+      <name>Isopentenyl-diphosphate Delta-isomerase 1</name>
+      <uniprot_id>Q13907</uniprot_id>
+      <gene_name>IDI1</gene_name>
+      <protein_type>Unknown</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP11709</protein_accession>
+      <name>Decaprenyl-diphosphate synthase subunit 2</name>
+      <uniprot_id>Q86YH6</uniprot_id>
+      <gene_name>PDSS2</gene_name>
+      <protein_type>Unknown</protein_type>
+    </protein>
+    <protein>
+      <protein_accession>HMDBP11718</protein_accession>
+      <name>Decaprenyl-diphosphate synthase subunit 1</name>
+      <uniprot_id>Q5T2R2</uniprot_id>
+      <gene_name>PDSS1</gene_name>
+      <protein_type>Unknown</protein_type>
+    </protein>
+  </protein_associations>
+</metabolite>

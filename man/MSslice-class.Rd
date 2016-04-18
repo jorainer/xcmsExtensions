@@ -18,6 +18,10 @@
 \alias{plotChromatogram,MSslice-method}
 \alias{getSpectrum,MSslice-method}
 \alias{plotSpectrum,MSslice-method}
+\alias{subset,MSslice-method}
+\alias{names,MSslice-method}
+\alias{names<-,MSslice-method}
+\alias{names<-,MSslice,ANY-method}
 %% Data manipulation stuff...
 \alias{binMz,MSslice-method}
 \alias{binRtime,MSslice-method}
@@ -79,6 +83,10 @@ MSslice(...)
 
 \S4method{mzrange}{MSslice}(object)
 
+\S4method{names}{MSslice}(x)
+
+\S4method{names}{MSslice}(x) <- value
+
 \S4method{plotChromatogram}{MSslice}(object, FUN=max, bins=NULL,
                             nbin=NULL, binSize=NULL,
                             main=paste(format(mzrange(object), 2),
@@ -93,6 +101,7 @@ MSslice(...)
 
 \S4method{rtrange}{MSslice}(object)
 
+\S4method{subset}{MSslice}(x, mzrange=NULL, rtrange=NULL)
 }
 \arguments{
 
@@ -201,8 +210,14 @@ MSslice(...)
     A numeric vector defining the retention time range of the slice.
   }
 
+  \item{value}{
+    For \code{names}: a character vector (length matching the number of
+    \code{\link{MSdata}} objects in the \code{@data} slot) specifying
+    names of the individual objects.
+  }
+
   \item{x}{
-    For \code{length}: an \code{MSslice} object.
+    For \code{length}, \code{names} and \code{subset}: an \code{MSslice} object.
   }
 
   \item{xlab}{
@@ -237,6 +252,12 @@ MSslice(...)
     \item{mzrange}{
       A numeric vector of length 2 specifying the range of m/z
       values of the slice.
+    }
+
+    \item{names}{
+      A optional character vector with the names of the internal
+      \code{MSdata} objects. Has to have the same length than length of
+      the \code{data} slot.
     }
 
     \item{rtrange}{
@@ -344,12 +365,21 @@ MSslice(...)
       \code{MSdata} object(s) don't contain any data).
     }
 
+    \item{names,names<-}{
+      Get and set the names of the \code{\link{MSdata}} objects.
+    }
+
     \item{rtrange}{
       Get the retention time range of the slice. This represents the range of
       values across all samples (i.e. all \code{MSdata} objects within
       the \code{MSslice}). Returns a numeric of length
       2, or \code{c(NA, NA)} if the object is empty (or the internal
       \code{MSdata} object(s) don't contain any data).
+    }
+
+    \item{subset}{
+      Subset the \code{MSslice} based on the specified M/Z and retention
+      time ranges. The method returns a \code{MSslice} object.
     }
   }
 }
@@ -428,6 +458,13 @@ mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
 
 ## Get the number of samples
 length(mss)
+
+## We don't have any names yet
+names(mss)
+## Setting the names using the ones provided by the sampnames method of the
+## xcmsSet object.
+names(mss) <- sampnames(xset)
+names(mss)
 
 ## Get the mz, rt and intensity range. This corresponds to the range of
 ## values of the slice across all samples.

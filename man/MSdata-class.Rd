@@ -30,6 +30,7 @@
 \alias{plotSpectrum,MSdata-method}
 \alias{mapMatrix}
 \alias{mapMatrix,MSdata-method}
+\alias{subset,MSdata-method}
 %% Data manipulation stuff
 \alias{binMz}
 \alias{binMz,MSdata-method}
@@ -112,6 +113,7 @@ MSdata(mz, rtime, intensity, mslevel=1)
 
 \S4method{rtrange}{MSdata}(object)
 
+\S4method{subset}{MSdata}(x, mzrange=NULL, rtrange=NULL)
 }
 \arguments{
 
@@ -175,8 +177,8 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{mzrange}{
-    For \code{msData}: a numeric of length 2 specifying the range of m/z
-    values to be extracted from the object.
+    For \code{msData} and \code{subset}: a numeric of length 2
+    specifying the range of m/z values to be extracted from the object.
   }
 
   \item{nbin}{
@@ -213,8 +215,8 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{rtrange}{
-    For \code{msData}: a numeric of length 2 specifying the retention
-    time range to be extracted from the object.
+    For \code{msData} and \code{subset}: a numeric of length 2
+    specifying the retention time range to be extracted from the object.
   }
 
   \item{value}{
@@ -224,7 +226,7 @@ MSdata(mz, rtime, intensity, mslevel=1)
   }
 
   \item{x}{
-    For \code{as.matrix}: a \code{MSdata} object.
+    For \code{as.matrix} and \code{subset}: a \code{MSdata} object.
   }
 
   \item{xlab}{
@@ -408,6 +410,11 @@ MSdata(mz, rtime, intensity, mslevel=1)
       numeric vector of 2 or \code{c(NA, NA)} if the object is empty.
     }
 
+    \item{subset}{
+      Subset the \code{MSdata} object based on the probided ranges in
+      M/Z and/or retention time dimension. The method returns a
+      \code{MSdata} object.
+    }
   }
 }
 

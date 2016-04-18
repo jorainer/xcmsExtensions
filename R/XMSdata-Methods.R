@@ -101,7 +101,7 @@ setMethod("intrange", "MSdata", function(object){
 ####============================================================
 ##  msSlice
 ##
-##  Create an msSlice object from the MSdata.
+##  Create an MSslice object from the MSdata.
 ####------------------------------------------------------------
 setMethod("msSlice", "MSdata",
           function(object, call=match.call(), ...){
@@ -465,6 +465,62 @@ setMethod("mapMatrix", "MSdata",
               return(.msData2mapSparseMatrix(object))
           })
 
+####============================================================
+##  subset
+##
+##  Subset the MSdata object by mzrange and/or rtrange
+####------------------------------------------------------------
+setMethod("subset", "MSdata", function(x, mzrange=NULL, rtrange=NULL){
+    if(is.null(mzrange) & is.null(rtrange)){
+        return(x)
+    }
+    returnMeMz <- -9
+    returnMeRt <- -9
+    ## Checking mzrange input
+    if(!is.null(mzrange)){
+        if(!is.numeric(mzrange))
+            stop("'mzrange' has to be a numeric vector of length 2.")
+        if(length(mzrange) != 2)
+            stop("'mzrange' has to be a numeric vector of length 2.")
+        mzrange <- sort(mzrange)
+        returnMeMz <- which(mz(x) >= mzrange[1] & mz(x) <= mzrange[2])
+        ## Return an empty object if we've got no matching data.
+        if(length(returnMeMz) == 0){
+            return(MSdata(rtime=numeric(), mz=numeric(), intensity=numeric()))
+        }
+    }
+    ## Checking rtrange input
+    if(!is.null(rtrange)){
+        if(!is.numeric(rtrange))
+            stop("'rtrange' has to be a numeric vector of length 2.")
+        if(length(rtrange) != 2)
+            stop("'rtrange' has to be a numeric vector of length 2.")
+        rtrange <- sort(rtrange)
+        returnMeRt <- which(rtime(x) >= rtrange[1] & rtime(x) <= rtrange[2])
+        ## Return an empty object if we've got no matching data.
+        if(length(returnMeRt) == 0){
+            return(MSdata(rtime=numeric(), mz=numeric(), intensity=numeric()))
+        }
+    }
+    ## If we got so far we can /really/ subset the data.
+    if(returnMeMz[1] > 0){
+        ## OK we've got a subset for MZ
+        if(returnMeRt[1] > 0){
+            ## Got also retention time subset: make an intersect.
+            returnMeMz <- intersect(returnMeMz, returnMeRt)
+            if(length(returnMeMz) == 0)
+                return(MSdata(rtime=numeric(), mz=numeric(), intensity=numeric()))
+        }
+        return(MSdata(rtime=rtime(x)[returnMeMz],
+                      mz=mz(x)[returnMeMz],
+                      intensity=intensity(x)[returnMeMz]))
+    }else{
+        ## Only rtime subset.
+        return(MSdata(rtime=rtime(x)[returnMeRt],
+                      mz=mz(x)[returnMeRt],
+                      intensity=intensity(x)[returnMeRt]))
+    }
+})
 
 ####============================================================
 ####============================================================
@@ -703,3 +759,4 @@ setMethod("intensityOrderedByRtime", "MSdata",
                   mz=otherDat[, 1],
                   intensity=otherDat[, 2]))
 }
+

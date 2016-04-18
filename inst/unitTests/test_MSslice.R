@@ -15,7 +15,18 @@ globalRtr <- c(2500, 2700)
 suppressWarnings(
     globalMss <- msSlice(xset, mzrange=globalMzr, rtrange=globalRtr)
 )
+suppressWarnings(
+    mssFull <- msSlice(xset)
+)
 
+test_names <- function(){
+    mss <- globalMss
+    checkEquals(names(mss), NULL)
+
+    checkException(names(mss) <- c("a", "b"))
+    names(mss) <- rev(1:12)
+    checkEquals(names(mss), as.character(rev(1:12)))
+}
 
 test_MSslice <- function(){
     ## Generate one from a simple subset.
@@ -163,4 +174,25 @@ test_binMzRtime <- function(){
 
     mssB <- binMzRtime(mss, mzNbin=10, rtBinSize=5)
     checkEquals(as.matrix(msData(mzRtB)[[1]]), as.matrix(msData(mssB)[[1]]))
+}
+
+test_subset <- function(){
+
+    ## Get the full Data.
+    checkEquals(globalMss, subset(globalMss))
+
+    ## Subset by rt range
+    x1 <- subset(mssFull, rtrange=globalRtr)
+    x2 <- msSlice(xset, rtrange=globalRtr)
+    checkEquals(x1, x2)
+
+    ## Subset by mz range
+    x1 <- subset(mssFull, mzrange=globalMzr)
+    x2 <- msSlice(xset, mzrange=globalMzr)
+    checkEquals(x1, x2)
+
+    ## Subset by both
+    x1 <- subset(mssFull, mzrange=globalMzr, rtrange=globalRtr)
+    x2 <- msSlice(xset, mzrange=globalMzr, rtrange=globalRtr)
+    checkEquals(x1, x2)
 }

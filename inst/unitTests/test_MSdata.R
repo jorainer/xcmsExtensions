@@ -512,3 +512,27 @@ notrun_test_2mat <- function(){
 
     ## The code actually went into the .msData2mapMatrix.
 }
+
+test_subset <- function(){
+    rtr <- c(2550, 2700)
+    mzr <- c(300, 330)
+
+    ## Get the full data
+    msdFull <- msData(xraw)
+
+    checkEquals(msdFull, subset(msdFull))
+
+    ## subset by rt range
+    x1 <- subset(msdFull, rtrange=rtr)
+    x2 <- msData(xraw, rtrange=rtr)
+    checkEquals(x1, x2)
+    ## subset by mz range
+    x1 <- subset(msdFull, mzrange=mzr)
+    x2 <- msData(xraw, mzrange=mzr)
+    checkEquals(x1, x2)
+    ## subset by both
+    x1 <- subset(msdFull, mzrange=mzr, rtrange=rtr)
+    x2 <- msData(xraw, mzrange=mzr, rtrange=rtr)
+    checkEquals(x1, x2)
+}
+

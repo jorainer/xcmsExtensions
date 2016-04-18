@@ -17,6 +17,30 @@ setMethod("show", "MSslice", function(object){
 })
 
 ####============================================================
+##  names
+##
+##  Get the names of the MSdata inside.
+####------------------------------------------------------------
+setMethod("names", "MSslice", function(x){
+    ## if(length(x@names) == 0)
+    ##     return(NULL)
+    ## return(x@names)
+    return(names(x@data))
+})
+setReplaceMethod("names", "MSslice", function(x, value){
+    ## if(!is(value, "character"))
+    ##     value <- as.character(value)
+    ## x@names <- value
+    ## validObject(x)
+    if(length(value) != length(x@data)){
+        stop("The number of provided names does not match the number of internal MSdata objects!")
+    }
+    names(x@data) <- value
+    validObject(x)
+    return(x)
+})
+
+####============================================================
 ##  rtrange
 ##
 ##  Getter the rtrange slot.
@@ -367,4 +391,18 @@ setMethod("binMzRtime", "MSslice",
               ## NAF, have really to runem sequentially????
               tmp <- binMz(object, nbin=mzNbin, binSize=mzBinSize)
               return(binRtime(tmp, nbin=rtNbin, binSize=rtBinSize))
+          })
+
+####============================================================
+##  subset
+##
+##  Subset an MSslice object by mz and/or rtrange
+####------------------------------------------------------------
+setMethod("subset", "MSslice",
+          function(x, mzrange=NULL, rtrange=NULL){
+              if(is.null(mzrange) & is.null(rtrange)){
+                  return(x)
+              }
+              ## Subset each of the internal MSdata objects.
+              return(MSslice(lapply(msData(x), FUN=subset, mzrange=mzrange, rtrange=rtrange)))
           })

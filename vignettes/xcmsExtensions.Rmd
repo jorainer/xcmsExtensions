@@ -444,6 +444,178 @@ cmps
 TODO: use the workflow in `xcms` but use as much as possible the stuff from the
 `xcmsExtensions`.
 
+In this section we perform the analysis of the `faahKO` data set described in
+the `xcms` package vignette *LC/MS Preprocessing and Analysis with xcms*.
+
+```{r }
+## load the libraries and data
+library(xcms)
+library(xcmsExtensions)
+library(faahKO)
+## list the files provided by the package
+cdfpath <- system.file("cdf", package="faahKO")
+dir(cdfpath, recursive=TRUE)
+```
+
+In contrast to the default workflow, we define a `data.frame` specifying the
+input files, associated samples and phenotypes (or genotypes as in the present
+setup). Usually, such a table will be saved as a tabulator delimited text file
+which is then read with the `read.table` or `read.AnnotatedDataFrame` method.
+
+```{r }
+## Define a phenotype data.frame
+cdffiles <- dir(cdfpath, recursive=TRUE, full.names=TRUE)
+## Extract the genotype from the file name
+genot <- rep("KO", length(cdffiles))
+genot[grep(cdffiles, pattern="WT")] <- "WT"
+## And the sample name.
+tmp <- strsplit(cdffiles, split=.Platform$file.sep)
+sampn <- unlist(lapply(tmp, function(z){
+    return(gsub(z[length(z)], pattern=".CDF", replacement="", fixed=TRUE))
+}))
+
+## And the phenodata table
+pheno <- data.frame(file=cdffiles, genotype=genot, name=sampn)
+
+head(pheno)
+```
+
+Next we create a new `xcmsSet` object with the `xcmsSet` function. This call
+will identify peaks in each of the samples. In most instances we might however
+change the default peak identification approach with the `centwave` method
+[@Tautenhahn:2008fx]. In any case, we have to set the sample class
+assignment according to the experimental setup so that the peak grouping across
+samples is performed as expected. Similar to other data objects defined in
+Bioconductor (e.g. the `ExpressionSet`), we can access data in the provided
+phenodata table using the `$` operator.
+
+```{r message=FALSE, warning=FALSE}
+## The default call from the vignette.
+xset <- xcmsSet(files=cdffiles, phenoData=pheno)
+
+## Setting the sample class; that's important for the peak grouping
+## algorithm
+sampclass(xset) <- xset$genotype
+
+## At last we define also a color for each of the two genotypes.
+genoColor <- c("#E41A1C80", "#377EB880")
+names(genoColor) <- c("KO", "WT")
+```
+
+Next we plot the base peak chromatogram (BPC) and the total ion chromatogram
+(TIC) for all of the files to get a global overview of the data. To this end
+we're extracting an `MSslice` object without specifying an M/Z and retention
+time range, thus returning the full MS data for each sample.
+
+```{r message=FALSE, warning=FALSE}
+## Get the full MS data from each sample.
+fullData <- msSlice(xset)
+```
+
+The BPC and the BPS (base peak spectrum, i.e. the maximum signal across the
+retention time range for one M/Z) are shown below.
+
+```{r xcmsExtensions-xcms-wf-bpc-bps, fig.cap="Base peak chromatogram and base peak spectrum of all samples. Red and blue lines represent KO and WT samples, respectively.", fig.align="center", message=FALSE, warning=FALSE, width=8, height=4}
+par(mfrow=c(1, 2))
+plotChromatogram(fullData, binSize=1, col=genoColor[xset$genotype], main="BPC", type="l")
+plotSpectrum(fullData, binSize=0.1, col=genoColor[xset$genotype], main="BPS", type="l")
+```
+
+According to the spectrum, there seems to be some difference between the sample
+group around an M/Z of about 320. We will extract a slice from the whole MS data
+from an M/Z value of 320 to 330, taking the full retention time range.
+
+```{r xcmsExtensions-xcms-wf-mzslice, fig.cap="Chromatogram and spectrum for the specified M/Z slice.", fig.align="center", message=FALSE, warning=FALSE, width=8, height=4}
+## Extract the slice
+mzs <- msSlice(xset, mzrange=c(320, 330))
+
+par(mfrow=c(1, 2))
+plotChromatogram(mzs, binSize=1, col=genoColor[xset$genotype], main="BPC", type="l")
+plotSpectrum(mzs, binSize=0.1, col=genoColor[xset$genotype], main="BPS", type="l")
+```
+
+Indeed, there is a clear difference between the groups in that slice.
+
+Next we plot the total ion chromatogram (TIC) and total ion spectrum (TIS).
+
+```{r xcmsExtensions-xcms-wf-tic-tis, fig.cap="Total ion chromatogram and total ion spectrum of all samples. Red and blue lines represent KO and WT samples, respectively.", fig.align="center", message=FALSE, warning=FALSE, width=8, height=4}
+par(mfrow=c(1, 2))
+plotChromatogram(fullData, binSize=1, FUN=sum, col=genoColor[xset$genotype], main="TIC", type="l")
+plotSpectrum(fullData, binSize=0.1, FUN=sum, col=genoColor[xset$genotype], main="TIS", type="l")
+```
+
+Plotting also boxplots of the signal distribution of all peaks per sample; width
+of the boxes relative to the number of peaks.
+
+```{r xcmsExtensions-xcms-boxplot-rawdata, fig.cap="Distribution of (integrated) peak intensities per sample.", fig.align="center", message=FALSE, warning=FALSE, width=8, height=5}
+boxplot(log2(into)~sample, xlab="", data=data.frame(peaks(xset)),
+	main="Peak intensity distribution", col=genoColor[xset$genotype],
+	varwidth=TRUE, xaxt="n", ylab=expression(log[2]~intensity))
+axis(side=1, at=1:length(xset$name), as.character(xset$name), las=2)
+```
+
+Some of the samples show higher overall peak intensities but over and above,
+their distribution across samples is comparable. The number of identified peaks
+per sample (represented by the box width) varies also between samples.
+
+Next we perform the grouping of the peaks across sample and the retention time
+correction. As stated above, setting the class assignment of the samples (using
+the `sampclass` method) is crucial, since the default peak grouping algorithm
+(`group.density`) requires by default that at a peak has to be present in at
+least 30% of the samples in a class in order to be considered a peak (argument
+`minfrac`). After retention time correction the peaks are grouped again and
+finally missing peak data is filled in.
+
+```{r message=FALSE, warning=FALSE}
+## Perform the peak grouping across samples.
+xset <- group(xset)
+
+## Perform the retention time correction.
+xset <- retcor(xset, family="symmetric")
+
+## Group the peaks after retention time correction.
+xset <- group(xset)
+
+## Filling missing peak data.
+xset <- fillPeaks(xset)
+```
+
+The `groupval` method can be used to access the actual peak intensity values of
+the grouped peaks. By default that method returns the index of the corresponding
+peak in the `peaks` slot, to return the integrated original (raw) signal of the
+peak we can set the `value` argument of the method to `into`.
+
+```{r }
+## Accessing the intensity value of the grouped peaks.
+head(groupval(xset, value="into"))
+```
+
+On that matrix we can perform the remaining analyses. We're first evaluating the
+signal distribution of the peaks per sample. Note that we add a `+1` to each of
+the signal intensities to avoid taking the logarithm of values between 0 and 1,
+or even of 0.
+
+```{r xcmsExtensions-xcms-peak-signal-distribution, fig.cap="Peak signal distribution per sample.", fig.align="center", width=8, height=5}
+par(mfrow=c(1, 2))
+## Density plot
+denses <- apply(log2(groupval(xset, value="into")+1), MARGIN=2, density)
+Xses <- do.call(cbind, lapply(denses, function(z) z$x))
+Yses <- do.call(cbind, lapply(denses, function(z) z$y))
+matplot(Xses, Yses, ylab="Density", xlab=expression(log[2]~peak~intensity),
+	col=genoColor[xset$genotype], type="l", lty=1)
+## And the boxplot
+boxplot(log2(groupval(xset, value="into")+1), col=genoColor[xset$genotype],
+	xaxt="n", ylab=expression(log[2]~peak~intensity))
+axis(side=1, at=1:length(xset$name), xset$name, las=2)
+```
+
+The distribution of peak intensities (integrated intensities of the peak area)
+between the samples are comparable, but there might be some need for
+normalization.
+
+As next we could use `limma` to identify peaks with significantly different
+signal (i.e. differently abundant compounds) between the genotypes.
+
 # Alternative way to access data in `xcmsRaw` objects
 
 The `getData` method is an alternative method that can be used to extract paired

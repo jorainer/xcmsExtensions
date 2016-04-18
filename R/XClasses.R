@@ -15,12 +15,14 @@ setClass("MSslice",
          representation(data="list",
                         call="call",
                         mzrange="numeric",
-                        rtrange="numeric"),
+                        rtrange="numeric",
+                        names="character"),
          prototype(
              data=list(),
              call=call("new"),
              mzrange=numeric(),
-             rtrange=numeric()
+             rtrange=numeric(),
+             names=character()
          )
          )
 

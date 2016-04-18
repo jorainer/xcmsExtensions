@@ -1,3 +1,13 @@
+CHANGES IN VERSION 0.0.5
+------------------------
+
+NEW FEATURES:
+    o Added shiny app to visualize xcmsSet objects.
+    o Added an example of an /extended/ xcms workflow to the vignette.
+    o Added subset method for MSdata and MSslice objects.
+    o Added names slot and related methods for MSslice objects.
+
+
 CHANGES IN VERSION 0.0.4
 ------------------------
 

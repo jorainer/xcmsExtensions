@@ -75,6 +75,11 @@ setMethod("msSlice", "list", function(object, call=match.call(), ...){
         return(is(z, "MSdata"))
     }))))
         return("Only MSdata objects allowed in slot @data!")
+    ## ## Check the names slot
+    ## if(!is.null(names(object))){
+    ##     if(length(object@data) != length(object@names))
+    ##         return("The number of names does not match the number of MSdata objects!")
+    ## }
     return(TRUE)
 }
 setValidity("MSslice", .validateMSslice)

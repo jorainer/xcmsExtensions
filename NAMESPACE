@@ -54,7 +54,7 @@ exportMethods("scantimes", "getData", "msMap")
 exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
               "rtrange", "mzrange", "intrange", "getChromatogram",
               "getSpectrum", "plotChromatogram", "plotSpectrum",
-              "binMz", "binRtime", "binMzRtime", "mapMatrix")
+              "binMz", "binRtime", "binMzRtime", "mapMatrix", "subset")
 
 ## MSsliceList methods:
 exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",
@@ -67,10 +67,13 @@ exportMethods("dbconn", "columns", "listTables", "as.data.frame", "compounds")
 exportMethods("column", "where", "value", "value<-", "condition", "condition<-")
 
 ## Generic methods
-exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmatch")
+exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmatch", "names")
 
 ## Constructors
 export("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb", "CompoundidFilter")
+
+## Shiny app
+export("visualizeXcmsSet")
 
 
 

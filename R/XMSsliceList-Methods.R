@@ -116,7 +116,7 @@ setMethod("intrange", "MSsliceList", function(object){
 ## [ subsetting.
 .bracketSubset <- function(x, i, j, ..., drop){
     if(!missing(j))
-        stop("Subsetting by columns ('j') is not supported")
+        stop("Subsetting by columns ('j') is not supported.")
     ## Check if index i is outside of what we've got.
     haveEls <- length(slices(x))
     if(haveEls == 0){
@@ -130,8 +130,22 @@ setMethod("intrange", "MSsliceList", function(object){
     return(x)
 }
 .checkElementIndices <- function(i, elNo, elNames){
-    if(is.character(i))
-        stop("Subsetting by element names not yet supported!")
+    if(is.character(i)){
+        if(is.null(elNames))
+            stop("Can not subset by names as the object has no names!")
+        ## match is to elNames.
+        if(!all(i %in% elNames)){
+            stop("Element(s) with name(s) ", paste(i[!(i %in% elNames)], collapse=", "),
+                 " not found!")
+        }
+        return(match(i, elNames))
+    }
+    if(is.logical(i)){
+        if(length(i) != elNo)
+            stop("Length of 'i' does not match number of elements in 'x'!",
+                 " If 'i' is a logical vector its length has to match that of 'x'.")
+        i <- which(i)
+    }
     ## Check if we've got elements outside...
     outs <- sum(!(i %in% 1:elNo))
     if(outs > 0)
@@ -147,12 +161,14 @@ setMethod("[", "MSsliceList", .bracketSubset)
 ####------------------------------------------------------------
 setMethod("[[", "MSsliceList", function(x, i, j, ...){
     haveEls <- length(slices(x))
+    if(!missing(j))
+        stop("Subsetting by 'j' ([[ i, j ]] is not supported!")
     if(missing(i)){
         return(x)
     }
     if(length(i) > 1)
-        stop("Can only extract a single element,  but ", length(i),
-             " indices submitted.")
+        stop("Can only extract a single element with [[,  but ", length(i),
+             " indices were submitted.")
     i <- .checkElementIndices(i, haveEls, NULL)
     return(slices(x)[[i]])
 })

@@ -13,7 +13,8 @@ For more information see [[file:vignettes/xcmsExtensions.org]].
 
 ** Installation
 
-Using the =devtools= R-package:
+Using the =devtools= R-package: Note that we also need the development version
+of the =ensembldb= package (which will be released with Bioconductor 3.3).
 
 #+BEGIN_SRC R
   library(devtools)

@@ -53,6 +53,15 @@ setGeneric("rtranges", function(object, ...)
 setGeneric("intranges", function(object, ...)
     standardGeneric("intranges"))
 
+## ## Remove that stuff for Bioc 3.3
+setGeneric("condition<-", function(x, value)
+    standardGeneric("condition<-"))
+setGeneric("value", function(x, db, ...)
+    standardGeneric("value"))
+setGeneric("value<-", function(x, value)
+    standardGeneric("value<-"))
+
+
 ## Database stuff:
 ## That one could be imported from ensembldb
 if(!isGeneric("listTables")){

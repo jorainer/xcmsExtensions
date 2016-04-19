@@ -406,3 +406,41 @@ setMethod("subset", "MSslice",
               ## Subset each of the internal MSdata objects.
               return(MSslice(lapply(msData(x), FUN=subset, mzrange=mzrange, rtrange=rtrange)))
           })
+
+
+####============================================================
+##  [
+##
+##  Subset the MSslice by name or index. Returns always an MSslice
+##  object.
+####------------------------------------------------------------
+.bracketMSsliceSubset <- function(x, i, j, ..., drop){
+    if(!missing(j))
+        stop("Subsetting by columns ('j') is not supported.")
+    haveEls <- length(msData(x))
+    if(haveEls == 0){
+        warning("Can not subset an empty object.")
+        return(x)
+    }
+    if(missing(i))
+        i <- 1:haveEls
+    i <- .checkElementIndices(i, haveEls, names(x))
+    return(MSslice(msData(x)[i]))
+}
+setMethod("[", "MSslice", .bracketMSsliceSubset)
+
+####============================================================
+##  [[
+##
+##  Subset, extract a single MSdata.
+####------------------------------------------------------------
+.dbracketMSsliceSubset <- function(x, i, j, ...){
+    if(!missing(j))
+        stop("Subsetting by 'j' ([[ i, j ]] is not supported!")
+    if(length(i) > 1)
+        stop("Can only extract a single element with [[, but ", length(i),
+             " indices were submitted.")
+    x <- x[i]
+    return(msData(x)[[1]])
+}
+setMethod("[[", "MSslice", .dbracketMSsliceSubset)

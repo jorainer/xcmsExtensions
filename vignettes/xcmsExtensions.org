@@ -322,6 +322,24 @@ of all samples of an experiment by simply not providing an =rtrange= or
   mss
 #+END_SRC
 
+We can further subset data in an =MSslice= object using the =subset= method
+providing =mzrange= and/or =rtrange=, or we can subset the =MSslice= object to
+specific samples using the =[= method. Finally we can also extract single
+=MSdata= objects using the =[[= method.
+
+#+BEGIN_SRC R :ravel warning=FALSE, message=FALSE
+  ## Further subsetting the MSslice object
+  mssSub <- subset(mss, rtrange=c(2570, 2590))
+
+  ## Or we can use the [ and [[ methods to subset to samples.
+  ## Extract samples 2, 8, 9
+  mss[c(2, 8, 9)]
+
+  ## Extract the MSdata representing sample 8
+  mss[[8]]
+#+END_SRC
+
+
 Most of the methods defined for =MSdata= objects are also available for
 =MSslice= objects. In the example below we thus extract the chromatogram and the
 spectrum from the =MSdata= object and get for each of the two as a result a
@@ -609,6 +627,9 @@ time range, thus returning the full MS data for each sample.
 #+BEGIN_SRC R :ravel message=FALSE, warning=FALSE
   ## Get the full MS data from each sample.
   fullData <- msSlice(xset)
+
+  ## Eventually setting the names of the data
+  names(fullData) <- sampnames(xset)
 #+END_SRC
 
 The BPC and the BPS (base peak spectrum, i.e. the maximum signal across the
@@ -686,7 +707,8 @@ finally missing peak data is filled in.
 The =groupval= method can be used to access the actual peak intensity values of
 the grouped peaks. By default that method returns the index of the corresponding
 peak in the =peaks= slot, to return the integrated original (raw) signal of the
-peak we can set the =value= argument of the method to =into=.
+peak we can set the =value= argument of the method to =into=. That returns the
+/peak intensity matrix/, each column representing a sample, each row a peak.
 
 #+BEGIN_SRC R
   ## Accessing the intensity value of the grouped peaks.
@@ -696,19 +718,26 @@ peak we can set the =value= argument of the method to =into=.
 On that matrix we can perform the remaining analyses. We're first evaluating the
 signal distribution of the peaks per sample. Note that we add a =+1= to each of
 the signal intensities to avoid taking the logarithm of values between 0 and 1,
-or even of 0.
+or even of 0. Also, we replace peak intensities of =0=.
 
 #+NAME: xcmsExtensions-xcms-peak-signal-distribution
 #+BEGIN_SRC R :ravel fig.cap="Peak signal distribution per sample.", fig.align="center", width=8, height=5
+  peakMat <- groupval(xset, value="into")
+  colnames(peakMat) <- as.character(xset$name)
+
+  ## Eventually replacing 0 values with NA.
+  peakMat[peakMat == 0] <- NA
+  peakMat <- log2(peakMat + 1)
+
   par(mfrow=c(1, 2))
   ## Density plot
-  denses <- apply(log2(groupval(xset, value="into")+1), MARGIN=2, density)
+  denses <- apply(peakMat, MARGIN=2, density, na.rm=TRUE)
   Xses <- do.call(cbind, lapply(denses, function(z) z$x))
   Yses <- do.call(cbind, lapply(denses, function(z) z$y))
   matplot(Xses, Yses, ylab="Density", xlab=expression(log[2]~peak~intensity),
           col=genoColor[xset$genotype], type="l", lty=1)
   ## And the boxplot
-  boxplot(log2(groupval(xset, value="into")+1), col=genoColor[xset$genotype],
+  boxplot(peakMat, col=genoColor[xset$genotype],
           xaxt="n", ylab=expression(log[2]~peak~intensity))
   axis(side=1, at=1:length(xset$name), xset$name, las=2)
 #+END_SRC
@@ -717,8 +746,37 @@ The distribution of peak intensities (integrated intensities of the peak area)
 between the samples are comparable, but there might be some need for
 normalization.
 
-As next we could use =limma= to identify peaks with significantly different
-signal (i.e. differently abundant compounds) between the genotypes.
+Next we could use more sophisticated tools like =limma= to identify peaks with
+significantly different signal (i.e. differently abundant compounds) between the
+genotypes.
+
+Below we perform a /differential abundance/ analysis using the methodology
+provided by Bioconductor's =limma= package \cite{Smyth:2004to}. The methods in
+this package were developed for microarray data analysis, but, it might be as
+well applicable to metabolomics data, given that the peak intensity distribution
+is similar to the signal distribution usually seen in microarray experiments.
+
+#+BEGIN_SRC R
+  ## Limma setup: define the design matrix KO vs WT
+  genot <- xset$genotype
+  dsgn <- model.matrix(~ 0 + genot)
+
+  dsgn
+#+END_SRC
+
+The very simple model above could be further extended to include and account for
+e.g. batches in the data etc. Below we fit now the model to the data (the linear
+model is fit to each row/peak in the peak matrix).
+
+#+BEGIN_SRC R
+  fit <- lmFit(peakMat, design=dsgn)
+
+  ## Defining the contrasts of interest, i.e. which sample group we want
+  ## to compare against which.
+  contrMat <- makeContrasts(KOvsWT=genotKO - genotWT, levels=dsgn)
+  fit <- contrasts.fit(fit, contrMat)
+  fit <- eBayes(fit)
+#+END_SRC
 
 
 * Alternative way to access data in =xcmsRaw= objects
@@ -883,7 +941,7 @@ Alternatively we can also split the file into small peaces... hm , doesn't work!
 ** DONE =scantime= method for =xcmsRaw=.
    CLOSED: [2016-03-30 Wed 15:53]
    - State "DONE"       from "TODO"       [2016-03-30 Wed 15:53]
-** DONE =MSslice= class [5/5]
+** DONE =MSslice= class [6/6]
    CLOSED: [2016-04-05 Tue 15:22]
    - State "DONE"       from "TODO"       [2016-04-05 Tue 15:22]
 The =MSslice= represents a part of the data defined by an =rtrange= and an
@@ -898,6 +956,7 @@ files. But this again requires that the times AND mz are synced.
 + [X] Documentation.
 + [X] Examples to the vignette.
 + [X] =binMz=, =binRt= and both.
++ [X] =subset= method to subset a =MSslice= by =mzrange=, =rtrange= or both.
 
 ** TODO =MSsliceList= class [5/7]
 
@@ -909,7 +968,6 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [X] Documentation.
 + [X] Examples to the vignette.
 + [X] =binMz=, =binRt= and both.
-+ [ ] =subset= method to subset a =MSslice= by =mzrange=, =rtrange= or both.
 
 ** DONE =MSdata= class [8/8]
    CLOSED: [2016-04-05 Tue 15:22]
@@ -951,5 +1009,7 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [X] Vignette: example for =mzmatch=.
 + [ ] Vignette: /standard/ workflow with new methods.
 
+
+** TODO Subset MSslice objects =[]=.
 
 * References

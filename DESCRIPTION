@@ -1,12 +1,12 @@
 Package: xcmsExtensions
 Type: Package
 Title: Extensions to the xcms package
-Version: 0.0.5
+Version: 0.0.6
 Author: J. Rainer
 Maintainer: Johannes Rainer <johannes.rainer@eurac.edu>
 Imports: BiocGenerics, utils, ProtGenerics, S4Vectors, BiocParallel, Matrix, XML,
 	 DBI, RSQLite, AnnotationDbi, ensembldb
-Depends: methods, xcms (>= 1.47.2), MSnbase
+Depends: methods, xcms (>= 1.46.0), MSnbase
 Suggests: BiocStyle, knitr, RUnit, rmarkdown, faahKO, shiny, shinyjs (>= 0.5.2)
 VignetteBuilder: knitr
 Description: Collection of methods and functions extending the functionality of

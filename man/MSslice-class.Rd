@@ -22,6 +22,8 @@
 \alias{names,MSslice-method}
 \alias{names<-,MSslice-method}
 \alias{names<-,MSslice,ANY-method}
+\alias{[,MSslice,ANY,ANY,ANY-method}
+\alias{[[,MSslice,ANY,ANY-method}
 %% Data manipulation stuff...
 \alias{binMz,MSslice-method}
 \alias{binRtime,MSslice-method}
@@ -302,7 +304,7 @@ MSslice(...)
   }
 }
 
-\section{Accessing data of an \code{MSslice} object}{
+\section{Accessing and subsetting}{
   \describe{
 
     \item{getChromatogram}{
@@ -367,6 +369,18 @@ MSslice(...)
 
     \item{names,names<-}{
       Get and set the names of the \code{\link{MSdata}} objects.
+    }
+
+    \item{object[i]}{
+      Subsets the \code{MSslice} object \emph{object} and returns an
+      \code{MSslice} object with only the elements selected by
+      \code{i}. \code{i} can be an integer vector or a character vector,
+      if names are available in \code{object}.
+    }
+
+    \item{object[[i]]}{
+      Extract e single \code{\link{MSdata}} object from the
+      \code{MSslice} \emph{object}.
     }
 
     \item{rtrange}{
@@ -465,6 +479,13 @@ names(mss)
 ## xcmsSet object.
 names(mss) <- sampnames(xset)
 names(mss)
+
+## Subset to samples with name starting with wt
+mssSub <- mss[grep(names(mss), pattern="^wt")]
+names(mssSub)
+
+## Extract a single MSdata object
+mssSub[["wt18"]]
 
 ## Get the mz, rt and intensity range. This corresponds to the range of
 ## values of the slice across all samples.

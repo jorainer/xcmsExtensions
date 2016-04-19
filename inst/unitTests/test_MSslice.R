@@ -46,6 +46,44 @@ test_MSslice <- function(){
     checkEquals(mzrange(mss2), mzrange(msd))
 }
 
+test_bracketSubset <- function(){
+    mss <- globalMss
+    checkException(mss[3, 4])
+    msss <- mss[c(1, 2, 5)]
+    checkEquals(length(msss@data), 3)
+    checkEquals(msss@data[[1]], mss@data[[1]])
+    checkEquals(msss@data[[3]], mss@data[[5]])
+
+    ## Repeating several idxs...
+    msss <- mss[c(1, 1, 1)]
+    checkEquals(msss@data[[1]], mss@data[[1]])
+    checkEquals(msss@data[[2]], mss@data[[1]])
+
+    ## Subsetting by name.
+    checkException(mss[c("first", "second")])
+    names(mss) <- sampnames(xset)
+    msss <- mss[c("ko18", "ko22", "wt16")]
+    checkEquals(length(msss), 3)
+    msss2 <- mss[c(3, 6, 8)]
+    checkEquals(msss, msss2)
+
+    ## Use logical vector to subset.
+    lv <- rep(FALSE, length(mss))
+    lv[c(3, 8, 9)] <- TRUE
+    msss <- mss[lv]
+    checkEquals(msss, mss[c(3, 8, 9)])
+
+    ## [[
+    checkException(mss[[c(1, 2)]])
+    checkException(mss[[1, 2]])
+
+    ## OK, now something that works...
+    msss <- mss[["ko16"]]
+    checkEquals(msss, mss@data[[2]])
+    msss <- mss[[12]]
+    checkEquals(msss, mss@data[[12]])
+}
+
 ## test_plotChromatogram <- function(){
 ##     mzr <- c(302, 302.5)
 ##     rtr <- c(2500, 2700)

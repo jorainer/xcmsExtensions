@@ -6,8 +6,8 @@
 shinyUI(fluidPage(
     titlePanel("xcmsSet visualization"),
 
-    fluidRow(
-        column(3,
+    shiny::fluidRow(
+        shiny::column(3,
                wellPanel(
                    helpText(paste0("Select an xcmsSet object to visualize;",
                                    " hit the 'Update view' button to update the plots.")),
@@ -29,7 +29,7 @@ shinyUI(fluidPage(
                    uiOutput("colorPicker")
                )
                ),
-        column(9,
+        shiny::column(9,
                wellPanel(
                    h4("Chromatogram"),
                    plotOutput("chromPlot")

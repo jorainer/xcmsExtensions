@@ -21,7 +21,15 @@ setMethod("msSlice", "xcmsSet",
                   ## Get the MSsliceList on that.
                   slices <- msSlice(xr, mzrange=mzrange, rtrange=rtrange)
                   return(slices)
-              }, object=object, rt=rt, mzrange=mzrange, rtrange=rtrange, BPPARAM=BPPARAM)
+              }, object=object, rt=rt, mzrange=mzrange, rtrange=rtrange)
+              ## resu <- bplapply(as.list(sampidx), function(z, object, rt, mzrange, rtrange){
+              ##     ## Get the raw object. We don't want the profile matrix to be generated
+              ##     ## thus we set profstep to 0.
+              ##     xr <- getXcmsRaw(object, sampleidx=z, profstep=0, rt=rt)
+              ##     ## Get the MSsliceList on that.
+              ##     slices <- msSlice(xr, mzrange=mzrange, rtrange=rtrange)
+              ##     return(slices)
+              ## }, object=object, rt=rt, mzrange=mzrange, rtrange=rtrange, BPPARAM=BPPARAM)
               ## OK, resu will now be a list of MSslice or MSsliceList objects (depending
               ## on whether mzrange or rtrange were a matrix or not).
               ## Will now combine the MSdata for the individual samples into one MSslice.

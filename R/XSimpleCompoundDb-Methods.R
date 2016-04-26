@@ -145,17 +145,123 @@ setMethod("as.data.frame", "SimpleCompoundDb", function(x, ...){
 ##  HMDB database!
 ####------------------------------------------------------------
 setMethod("mzmatch", signature(x="numeric", mz="SimpleCompoundDb"),
-          function(x, mz, mzdev=0, ppm=10, column="avg_molecular_weight"){
+          function(x, mz, mzdev=0, ppm=10, column="monoisotopic_molecular_weight",
+                   ionAdduct=NULL){
               column <- match.arg(column, c("avg_molecular_weight",
                                             "monoisotopic_molecular_weight"))
-              return(.mzmatchCompoundDbSQL(x=x, mz=mz, mzdev=mzdev, ppm=ppm,
-                                           column=column))
+              ## Check if we would have the ion adduct available.
+              adds <- ionAdduct
+              if(!is.null(adds)){
+                  notPresent <- !(adds %in% supportedIonAdducts())
+                  if(all(notPresent))
+                      stop("None of the provided ion adduct names are supported!",
+                           " Use the 'supportedIonAdducts()' method to list all supported names.")
+                  if(any(notPresent)){
+                      warning("Adducts with name ", paste(adds[notPresent], collapes=", "), " are not supported",
+                              " and have thus been removed.")
+                      ionAdduct <- ionAdduct[!notPresent]
+                  }
+              }
+              ## return(.mzmatchCompoundDbSQL(x=x, mz=mz, mzdev=mzdev, ppm=ppm,
+              ##                              column=column))
+              return(.mzmatchMassPpmCompoundDbSql(x=x, mz=mz, mzdev=mzdev, ppm=ppm,
+                                                  column=column, ionAdduct=ionAdduct))
           })
+## Here we support calculation and comparison of all masses for M/Z being all possible
+## ion adducts for a compound.
+## We are first calculating the minmz and maxmz given the mzdev and ppm, then we get
+## all possible masses for these (considering ionName) and feeding that to the SQL query.
+## So, here the ppm is on the M/Z, not on the mass.
+.mzmatchMassCompoundDbSql <- function(x, mz, mzdev=0, ppm=10,
+                                      column="monoisotopic_molecular_weight",
+                                      ionAdduct=NULL){
+    fixi <- 1e-9
+    mzd <- x * ppm/1000000 + mzdev + fixi
+    minmasses <- adductmz2mass(x-mzd, ionAdduct=ionAdduct)
+    maxmasses <- adductmz2mass(x+mzd, ionAdduct=ionAdduct)
+    con <- dbconn(mz)
+    df <- data.frame(mzidx=rep(1:length(mzd), length(minmasses)),
+                     adduct=rep(names(minmasses), each=length(x)),
+                     minmass=unlist(minmasses, use.names=FALSE),
+                     maxmass=unlist(maxmasses, use.names=FALSE),
+                     stringsAsFactors=FALSE
+                     )
+    res <- lapply(split(df, f=1:nrow(df)), function(z, col){
+        quer <- paste0("select accession, ", col, " from compound_basic where ", col,
+                       " between ", z$minmass, " and ", z$maxmass, ";")
+        tmp <- dbGetQuery(con, quer)
+        if(nrow(tmp) == 0){
+            return(data.frame(idx=NA, deltaMz=NA, mzidx=z$mzidx, adduct=z$adduct,
+                              stringsAsFactors=FALSE))
+        }
+        ## Calculate distance.
+        return(data.frame(idx=tmp$accession,
+                          deltaMz=abs(tmp[, col] - mean(as.numeric(z[1, c(3, 4)]))),
+                          mzidx=rep(z$mzidx, nrow(tmp)),
+                          adduct=rep(z$adduct, nrow(tmp)),
+                          stringsAsFactors=FALSE))
+    },
+    col=column
+    )
+    ## rbind that and split it again by mzidx; dropping the names later.
+    res <- do.call(rbind, c(res, make.row.names=FALSE))
+    rownames(res) <- NULL
+    ## Split it by index of input.
+    res <- split(res[, c(1, 2, 4)], f=res$mzidx)
+    names(res) <- NULL
+    return(res)
+}
+## Same as .mzmatchMassCompoundDbSql, but FIRST the masses of all adducts is calculated
+## and then the query is performed using the mass +- its PPM, so PPM is calculated on the
+## MASS.
+.mzmatchMassPpmCompoundDbSql <- function(x, mz, mzdev=0, ppm=10,
+                                      column="monoisotopic_molecular_weight",
+                                      ionAdduct=NULL){
+    fixi <- 1e-9
+    ppm <- ppm/1000000
+    ## Calculate the ion Adducts.
+    masses <- adductmz2mass(x, ionAdduct=ionAdduct)
+    con <- dbconn(mz)
+    df <- data.frame(mzidx=rep(1:length(x), length(masses)),
+                     adduct=rep(names(masses), each=length(x)),
+                     mass=unlist(masses, use.names=FALSE),
+                     stringsAsFactors=FALSE)
+    ## Split it by row and perform the query.
+    res <- lapply(split(df, f=1:nrow(df)), function(z, col){
+        addP <- z$mass * ppm + mzdev + fixi
+        quer <- paste0("select accession, ", col, " from compound_basic where ", col,
+                       " between ", z$mass - addP, " and ", z$mass + addP, ";")
+        tmp <- dbGetQuery(con, quer)
+        if(nrow(tmp) == 0){
+            return(data.frame(idx=NA, deltaMz=NA, mzidx=z$mzidx, adduct=z$adduct,
+                              stringsAsFactors=FALSE))
+        }
+        ## Calculate distance.
+        return(data.frame(idx=tmp$accession,
+                          deltaMz=abs(tmp[, col] - as.numeric(z[1, 3])),
+                          mzidx=rep(z$mzidx, nrow(tmp)),
+                          adduct=rep(z$adduct, nrow(tmp)),
+                          stringsAsFactors=FALSE))
+    }, col=column)
+    ## rbind that and split it again by mzidx; dropping the names later.
+    res <- do.call(rbind, c(res, make.row.names=FALSE))
+    rownames(res) <- NULL
+    ## Split it by index of input.
+    res <- split(res[, c(1, 2, 4)], f=res$mzidx)
+    names(res) <- NULL
+    return(res)
+}
 
 ## This method aims to use SQL commands to find the match.
-.mzmatchCompoundDbSQL <- function(x, mz, mzdev=0, ppm=10, column="avg_molecular_weight"){
+.mzmatchCompoundDbSQL <- function(x, mz, mzdev=0, ppm=10, column="monoisotopic_molecular_weight"){
     ## hm, could use SQL between: where xx between LB and UB; (between is >= and <=).
     ## Create a list of query strings and apply them.
+
+    ## OK, what do I have to do:
+    ## calculate the min and the max mz based on the mzdev and ppm. convert that to the mass assuming
+    ## mz is an ion adduct.
+    ## Use this as input in the search.
+
     fixi <- 1e-9
     con <- dbconn(mz)
     res <- lapply(x, function(z, mzd, ppm, col){

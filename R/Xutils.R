@@ -148,19 +148,104 @@ setMethod("mzmatch", signature(x="matrix", mz="numeric"),
 }
 
 
-## ## Returns always a matrix with 3 columns: rt, mz, intensity. Is in principal the
-## ## same thing as implemented in the rawMat method.
-## .getWhatever <- function(xraw, mzrange=NULL, rtrange=NULL){
-##     if(is.null(mzrange))
-##         mzrange <- range(xraw@env$mz)
-##     if(is.null(rtrange))
-##         rtrange <- range(xraw@scantime)
-##     ## Define which of the time points are within the time range.
-##     timeRange <- range(which(xraw@scantime >= rtrange[1] & xraw@scantime <= rtrange[2]))
 
-##     ## Get the indices of values within the mz and the rt range.
-##     massIdx <- which(xraw@env$mz >= mzrange[1] & xraw@env$mz <= mzrange[2])
-##     subsetIdx <- intersect()
-##     ##scanRange <-
-## }
+####============================================================
+##  mass2adductmz
+##
+##  Calculates all possible adducts (based on data from the Fiehn lab) for the provided
+##  masses.
+##  ionAdduct: specify the name of the ion adduct; returns x if ionAdduct is NULL.
+##  Returns a list of adduct mz values, names of the list representing the adduct, each
+##  element being a numeric vector (same length than x) with the mz values for that adduct.
+####------------------------------------------------------------
+setMethod("mass2adductmz", "numeric",
+          function(x, ionAdduct=supportedIonAdducts()){
+              if(missing(ionAdduct))
+                  ionAdduct <- supportedIonAdducts()
+              return(.mass2adductmz(x, ionAdduct=ionAdduct))
+          })
+####============================================================
+##  adductmz2mass
+##
+##  Calculates mass for all possible adducts (based on data
+##  from the Fiehn lab) for the provided mz.
+##  Returns a list of mass values, names of the list representing the adduct, each
+##  element being a numeric vector (same length than x) with the mass if the provided
+##  mz was this adduct ion.
+####------------------------------------------------------------
+setMethod("adductmz2mass", "numeric",
+          function(x, ionAdduct=supportedIonAdducts()){
+              if(missing(ionAdduct))
+                  ionAdduct <- supportedIonAdducts()
+              return(.adductmz2mass(x, ionAdduct=ionAdduct))
+          })
 
+
+
+####============================================================
+##  supporteIonAdducts
+##
+##  Returns all supported ion names for adduct ion names.
+setMethod("supportedIonAdducts", signature(x="missing", charge="missing"),
+          function(x, charge){
+              return(supportedIonAdducts(charge="both"))
+          })
+setMethod("supportedIonAdducts", signature(x="missing", charge="character"),
+          function(x, charge="both"){
+              charge <- match.arg(charge, c("both", "pos", "neg"))
+              if(charge=="both")
+                  return(ESIADDUCTS$ion_name)
+              if(charge=="pos")
+                  return(ESIADDUCTS$ion_name[ESIADDUCTS$charge > 0])
+              if(charge=="neg")
+                  return(ESIADDUCTS$ion_name[ESIADDUCTS$charge < 0])
+          })
+
+####============================================================
+##  .mass2adductmz
+##
+##  internal function to get the adduct(s) for a given mass.
+##  ionAdduct is just to optionally subset to specific ion names.
+##
+##  returns a list (always) the elements being the calculated adduct for one
+##  specific ionAdduct.
+####------------------------------------------------------------
+.mass2adductmz <- function(x, ionAdduct=NULL){
+    if(is.null(ionAdduct))
+        return(list(M=x))
+    ## Check if ionAdduct fit.
+    notPresent <- !(ionAdduct %in% ESIADDUCTS$ion_name)
+    if(all(notPresent))
+        stop("None of the provided ion names are valid!")
+    if(any(notPresent)){
+        warning("Ion adduct names ", paste(ionAdduct[notPresent], collapse=", "),
+                " are not valid",
+                " and have been dropped.")
+        ionAdduct <- ionAdduct[!notPresent]
+    }
+    tmp <- ESIADDUCTS[ESIADDUCTS$ion_name %in% ionAdduct, ]
+    tmp <- split(tmp, tmp$ion_name)
+    return(lapply(tmp, function(z, x){
+        return(x * z[1, "mult"] + z[1, "mass"])
+    }, x=x))
+}
+## And the reverse...
+.adductmz2mass <- function(x, ionAdduct=NULL){
+    if(is.null(ionAdduct))
+        return(list(M=x))
+    ## Check if ionAdduct fit.
+    notPresent <- !(ionAdduct %in% ESIADDUCTS$ion_name)
+    if(all(notPresent))
+        stop("None of the provided ion names are valid!")
+    if(any(notPresent)){
+        warning("Ion adduct names ", paste(ionAdduct[notPresent], collapse=", "),
+                " are not valid",
+                " and have been dropped.")
+        ionAdduct <- ionAdduct[!notPresent]
+    }
+    tmp <- ESIADDUCTS[ESIADDUCTS$ion_name %in% ionAdduct, ]
+    tmp <- split(tmp, tmp$ion_name)
+    return(lapply(tmp, function(z, x){
+        return(x * z[1, "mult"] - z[1, "mass"])
+    }, x=x))
+}

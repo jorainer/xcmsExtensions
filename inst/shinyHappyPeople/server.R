@@ -198,7 +198,8 @@ shinyServer(
                 ## Plot chromatogram
                 progress$set(message="Subsetting data", value=2/3)
                 message("Plotting the chromatogram...", appendLF=FALSE)
-                plotChromatogram(mss, type="l", col=unlist(sampColors, use.names=FALSE))
+                plotChromatogram(mss, type="l", col=unlist(sampColors, use.names=FALSE),
+                                 nbin=input$nbin)
                 message("OK")
             }else{
                 ##par()
@@ -236,7 +237,8 @@ shinyServer(
                 ## Plot spectrum
                 message("Plotting the spectrum...", appendLF=FALSE)
                 message("Plotting the spectrum...", appendLF=FALSE)
-                plotSpectrum(mss, type="l", col=unlist(sampColors, use.names=FALSE))
+                plotSpectrum(mss, type="l", col=unlist(sampColors, use.names=FALSE),
+                             nbin=input$nbin)
                 message("OK")
             }else{
                 ##par()

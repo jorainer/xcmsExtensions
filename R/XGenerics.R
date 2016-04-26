@@ -95,9 +95,14 @@ setGeneric("getWhat", function(x, ...)
 ## Utils and alike
 setGeneric("grow", function(x, by, ...)
     standardGeneric("grow"))
-setGeneric("mzmatch", function(x, mz, mzdev=0, ppm=5, ...)
+setGeneric("mzmatch", function(x, mz, mzdev=0, ppm=10, ...)
     standardGeneric("mzmatch"))
-
+setGeneric("mass2adductmz", function(x, ionAdduct=NULL, ...)
+    standardGeneric("mass2adductmz"))
+setGeneric("adductmz2mass", function(x, ionAdduct=NULL, ...)
+    standardGeneric("adductmz2mass"))
+setGeneric("supportedIonAdducts", function(x, charge)
+    standardGeneric("supportedIonAdducts"))
 
 ####============================================================
 ##  internal methods.

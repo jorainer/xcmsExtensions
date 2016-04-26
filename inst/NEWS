@@ -1,3 +1,19 @@
+CHANGES IN VERSION 0.0.7
+------------------------
+
+NEW FEATURES
+    o Common ESI adducts from the Fiehn lab added.
+    o supportedIonAdducts, mass2adductmz, adductmz2mass methods added to convert
+      between adduct M/Z and mass values.
+    o mzmatch for SimpleCompoundDb has now the new argument "ionAdduct" that
+      allows to calculate the mass given that the provided M/Z is from an adduct.
+
+BUG FIXES
+    o msSlice method for xcmsSet objects uses now MulticoreParam as default for
+      parallel processing; snow does not work as the workspace would have to
+      be copied.
+
+
 CHANGES IN VERSION 0.0.6
 ------------------------
 

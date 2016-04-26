@@ -69,14 +69,14 @@ exportMethods("dbconn", "columns", "listTables", "as.data.frame", "compounds")
 exportMethods("column", "where", "value", "value<-", "condition", "condition<-")
 
 ## Generic methods
-exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmatch", "names")
+exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmatch", "names",
+              "supportedIonAdducts", "mass2adductmz", "adductmz2mass")
 
 ## Constructors
 export("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb", "CompoundidFilter")
 
 ## Shiny app
 export("visualizeXcmsSet")
-
 
 
 ## ## Export functions

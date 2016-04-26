@@ -79,7 +79,7 @@ MSslice(...)
 \S4method{msSlice}{MSdata}(object, call=match.call(), ...)
 
 \S4method{msSlice}{xcmsSet}(object, mzrange=NULL, rtrange=NULL,
-                            rt="corrected", BPPARAM=bpparam())
+                            rt="corrected", BPPARAM=MulticoreParam())
 
 \S4method{msSlice}{xcmsRaw}(object, mzrange=NULL, rtrange=NULL, ...)
 
@@ -137,7 +137,10 @@ MSslice(...)
 
   \item{BPPARAM}{
     Parallel processing parameters; see
-    \code{\link[BiocParallel]{bpparam}} for more information.
+    \code{\link[BiocParallel]{bpparam}} for more information. Note that
+    parallel processing will most likely not work with the \code{snow},
+    thus, on Windows machines there will no parallel processing be
+    available.
   }
 
   \item{call}{

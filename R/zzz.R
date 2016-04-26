@@ -15,5 +15,9 @@
         assign(objname, db, envir=ns)
         namespaceExport(ns, objname)
     }
+    ## Read the Fiehn lab ESI-adducts.
+    ESIADDUCTS <- read.table(system.file("txt/ESI-MS-adducts.txt", package=pkgname, lib.loc=libname),
+                             header=TRUE, as.is=TRUE, sep="\t")
+    assign("ESIADDUCTS", ESIADDUCTS, envir=ns)
 }
 

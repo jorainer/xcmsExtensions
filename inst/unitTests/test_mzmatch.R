@@ -4,6 +4,7 @@
 ####------------------------------------------------------------
 detach("package:xcmsExtensions", unload=TRUE)
 library(xcmsExtensions)
+library(RUnit)
 ## library(faahKO)
 ## library(RUnit)
 ## xset <- faahko
@@ -161,8 +162,6 @@ test_matchmz_matrix <- function(){
 
 }
 
-
-
 ## testApply <- function(x){
 ##     tmp <- apply(x, MARGIN=1, FUN=function(z){
 ##         return(xcmsExtensions:::.singleMatchMz(z, matchWith, mzdev=0, ppm=accPpm))
@@ -181,3 +180,102 @@ test_matchmz_matrix <- function(){
 ## system.time(testApply(Test))
 ## system.time(testLapply(Test))
 ## ## lapply slightly faster!
+
+notrun_test_ppm_conversion <- function(){
+    ## That's pretty tricky; I just want to calculate all possible adducts from the input, but
+    ## not from the database. But the ppm relates to the mz, not its mass!
+    ppm <- 1000
+    mzval <- 3012
+    maxDiff <- mzval * ppm/1000000
+
+    ## Calculate the mass assuming this was M+H for this.
+    mass <- adductmz2mass(mzval, ionName="M+H")[[1]]
+    ## Now, given that mass and the 1000 ppm I would search for:
+    minmass <- mass - mass * ppm/1000000
+    maxmass <- mass + mass * ppm/1000000
+
+    ## What would be the mass of the minmzval?
+    minmzval <- mzval - mzval * ppm/1000000
+    maxmzval <- mzval + mzval * ppm/1000000
+
+    ## Now, the mass of that:
+    adductmz2mass(minmzval, ionName="M+H")
+
+    ## obviously not the same than minmass... do I have to convert also the ppm???
+    massppm <- adductmz2mass(ppm, ionName="M+H")[[1]]
+
+    ## Get the mass for the minmz and maxmz
+    minmzvalMass <- adductmz2mass(minmzval, ionName="M+H")[[1]]
+    maxmzvalMass <- adductmz2mass(maxmzval, ionName="M+H")[[1]]
+
+    ## Use the massppm to calculate the minmass and maxmass.
+    minmass2 <- mass - mass * massppm/1000000
+    maxmass2 <- mass + mass * massppm/1000000
+
+    ## AAAh; wrong way round!
+    checkEquals(minmzvalMass, minmass2)
+}
+
+
+test_adducts <- function(){
+    mzs <- c(200, 210, 300, 314)
+    hmass <- adductmz2mass(mzs, ionAdduct="M+H")[[1]]
+    ## Now, if we calculate that back it should be the same than mzs
+    hmz <- mass2adductmz(hmass, ionAdduct="M+H")[[1]]
+    checkEquals(mzs, hmz)
+
+    masses <- adductmz2mass(mzs)
+    checkEquals(names(masses), sort(supportedIonAdducts()))
+    masses <- adductmz2mass(mzs, ionAdduct=supportedIonAdducts(charge="neg"))
+    checkEquals(names(masses), sort(supportedIonAdducts(charge="neg")))
+
+    masses <- adductmz2mass(mzs)
+    mz2 <- mass2adductmz(masses[["M+H"]], ionAdduct="M+H")
+    checkEquals(mzs, mz2[[1]])
+
+    mz3 <- adductmz2mass(mzs, ionAdduct=NULL)
+    checkEquals(names(mz3), "M")
+    mz4 <- mass2adductmz(mzs, ionAdduct=NULL)
+    checkEquals(mz3, mz4)
+}
+
+notrun_for_db <- function(){
+    mzs <- c(200, 210, 300, 314)
+    ppm <- 10
+    mzdev <- 0.01
+
+    ## Idea is to first get the mzmin, mzmax based on the ppm and mzdev,
+    ## then convert that to masses and search using these.
+    ## So, want to have a matrix, two cols.
+    ppm <- 10/1000000
+    mzd <- mzs*ppm + mzdev
+
+    minmasses <- adductmz2mass(mzs - mzd)
+    maxmasses <- adductmz2mass(mzs + mzd)
+
+    ## I could cbind?
+    minmassMat <- do.call(cbind, minmasses)
+    maxmassMat <- do.call(cbind, maxmasses)
+
+    ## I need:
+    ## data.frame with
+    ## mzidx, adduct, minmass, maxmass
+    df <- data.frame(
+        mzidx=rep(1:length(mzd), length(minmasses)),
+        adduct=rep(names(minmasses), each=length(mzs)),
+        minmass=unlist(minmasses, use.names=FALSE),
+        maxmass=unlist(maxmasses, use.names=FALSE)
+    )
+    ## OK, now we can proceed; split by row.
+    spl <- split(df, f=1:nrow(df))
+    ## I would need to split now by row.
+    ## 2 options:
+    ## do it feature-wise
+    ## It's faster I have a longer x
+
+    x <- c(300.1898, 298.1508, 491.2000)
+    ppm <- 10/1000000
+
+    Test <- mzmatch(x, mz=scDb)
+}
+

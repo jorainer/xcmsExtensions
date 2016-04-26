@@ -235,6 +235,23 @@ mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
 mss
 ```
 
+We can further subset data in an `MSslice` object using the `subset` method
+providing `mzrange` and/or `rtrange`, or we can subset the `MSslice` object to
+specific samples using the `[` method. Finally we can also extract single
+`MSdata` objects using the `[[` method.
+
+```{r warning=FALSE, message=FALSE}
+## Further subsetting the MSslice object
+mssSub <- subset(mss, rtrange=c(2570, 2590))
+
+## Or we can use the [ and [[ methods to subset to samples.
+## Extract samples 2, 8, 9
+mss[c(2, 8, 9)]
+
+## Extract the MSdata representing sample 8
+mss[[8]]
+```
+
 Most of the methods defined for `MSdata` objects are also available for
 `MSslice` objects. In the example below we thus extract the chromatogram and the
 spectrum from the `MSdata` object and get for each of the two as a result a
@@ -406,12 +423,12 @@ specific columns (selected from the available ones returned by the `columns`
 method shown above) that should be returned.
 
 As stated above, we can use this database also for a simple, mass based,
-peak/compound identification. The `mzmatch` method compares the provided masses
-with the M/Z values of all of the compounds in the database and returns for each
-mass all compounds that match the specified mass given a user specified mass
-difference threshold. This allowed difference can be defined with the `mzdev`
-and `ppm` arguments. By default, the method returns all matches allowing a
-difference of 10 ppm.
+peak/compound identification. For the simplest case, assuming that the measured
+peaks is an ion, the `mzmatch` method compares the provided M/Z values
+with the masses of all of the compounds in the database and returns for each
+M/Z all matching compounds given a user specified
+difference threshold (defined with the `mzdev` and `ppm` arguments).
+By default, the method returns all matches allowing a difference of 10 ppm.
 
 ```{r }
 ## Defining compound masses.
@@ -425,14 +442,58 @@ Res
 
 The results are returned as a `list`, elements being a matrix with the match(es)
 for each specified mass. The column `idx` of the matrix contains the compound
-IDs and the column `deltaMz` the difference between the specified mass and the
-compound's M/Z value. In the code chunk below we're defining an
+IDs and the column `deltaMz` the difference between the specified mass (or
+calculated mass, assuming the measured M/Z corresponds to that of an ion adduct;
+see further below for more details) and the compound's mass. The column `adduct`
+indicates the ion adduct that matches the metabolite in the database (in the
+example above we assumed that the measured compound is already and ion, thus an
+`M` is listed).
+
+In a *real world* scenario, the measured M/Z value will correspond to that of an
+ion adduct of the *real* metabolite. The `xcmsExtensions` package has the data
+from the *ESI MS adducts* calculator from the Fiehn lab [@Huang:1999gb]
+integrated and uses this data to convert between M/Z values and masses for all
+or some of the most commonly found ion adducts. The methods `adductmz2mass` and
+`mass2adductmz` allow to convert between M/Z and mass values of supported ion
+adducts (which can be listed using the `supportedIonAdducts` method).
+
+To calculate the mass of the measured compounds, assuming that the `M+H` ion
+adduct was measured we can use the `adductmz2mass` method as shown below.
+
+```{r }
+## Calculate the mass assuming the M+H ion was measured.
+adductmz2mass(comps, ionAdduct="M+H")
+
+## Calculate the mass assuming that a negative ion adduct was measured.
+adductmz2mass(comps, ionAdduct=supportedIonAdducts(charge="neg"))
+```
+
+If ion adduct name(s) are provided to the `mzmatch` method with the `ionAdduct`
+argument, the method internally compares all masses for all ion adducts with the
+database.
+
+```{r }
+## Match the M/Z, assuming it to correspond to a positive ion adduct, with all
+## masses in the database
+Res <- mzmatch(comps, scDb, ionAdduct=supportedIonAdducts(charge="pos"))
+## Remove all non-matching results ensuring that at leas one result is returned
+## for an input M/Z
+Res <- lapply(Res, function(z){
+    if(all(is.na(z$idx)))
+	return(z[1, ])
+    return(z[!is.na(z$idx), ])
+})
+
+Res[1:2]
+```
+
+In the code chunk below we're defining an
 `CompoundidFilter` for the identified compounds of the 4th mass and return its
 name and inchi key from the database.
 
 ```{r }
 ## Define CompoundidFilter for the matches of the selected mass
-cf <- CompoundidFilter(Res[[4]][, 1])
+cf <- CompoundidFilter(Res[[1]][1, "idx"])
 
 ## Getting the compounds' names and inchi keys from the database
 cmps <- compounds(scDb, filter=cf, columns=c("name", "inchikey"))
@@ -510,6 +571,9 @@ time range, thus returning the full MS data for each sample.
 ```{r message=FALSE, warning=FALSE}
 ## Get the full MS data from each sample.
 fullData <- msSlice(xset)
+
+## Eventually setting the names of the data
+names(fullData) <- sampnames(xset)
 ```
 
 The BPC and the BPS (base peak spectrum, i.e. the maximum signal across the
@@ -583,7 +647,8 @@ xset <- fillPeaks(xset)
 The `groupval` method can be used to access the actual peak intensity values of
 the grouped peaks. By default that method returns the index of the corresponding
 peak in the `peaks` slot, to return the integrated original (raw) signal of the
-peak we can set the `value` argument of the method to `into`.
+peak we can set the `value` argument of the method to `into`. That returns the
+*peak intensity matrix*, each column representing a sample, each row a peak.
 
 ```{r }
 ## Accessing the intensity value of the grouped peaks.
@@ -593,18 +658,25 @@ head(groupval(xset, value="into"))
 On that matrix we can perform the remaining analyses. We're first evaluating the
 signal distribution of the peaks per sample. Note that we add a `+1` to each of
 the signal intensities to avoid taking the logarithm of values between 0 and 1,
-or even of 0.
+or even of 0. Also, we replace peak intensities of `0`.
 
 ```{r xcmsExtensions-xcms-peak-signal-distribution, fig.cap="Peak signal distribution per sample.", fig.align="center", width=8, height=5}
+peakMat <- groupval(xset, value="into")
+colnames(peakMat) <- as.character(xset$name)
+
+## Eventually replacing 0 values with NA.
+peakMat[peakMat == 0] <- NA
+peakMat <- log2(peakMat + 1)
+
 par(mfrow=c(1, 2))
 ## Density plot
-denses <- apply(log2(groupval(xset, value="into")+1), MARGIN=2, density)
+denses <- apply(peakMat, MARGIN=2, density, na.rm=TRUE)
 Xses <- do.call(cbind, lapply(denses, function(z) z$x))
 Yses <- do.call(cbind, lapply(denses, function(z) z$y))
 matplot(Xses, Yses, ylab="Density", xlab=expression(log[2]~peak~intensity),
 	col=genoColor[xset$genotype], type="l", lty=1)
 ## And the boxplot
-boxplot(log2(groupval(xset, value="into")+1), col=genoColor[xset$genotype],
+boxplot(peakMat, col=genoColor[xset$genotype],
 	xaxt="n", ylab=expression(log[2]~peak~intensity))
 axis(side=1, at=1:length(xset$name), xset$name, las=2)
 ```
@@ -613,8 +685,200 @@ The distribution of peak intensities (integrated intensities of the peak area)
 between the samples are comparable, but there might be some need for
 normalization.
 
-As next we could use `limma` to identify peaks with significantly different
-signal (i.e. differently abundant compounds) between the genotypes.
+Next we could use more sophisticated tools like `limma` to identify peaks with
+significantly different signal (i.e. differently abundant compounds) between the
+genotypes.
+
+Below we perform a *differential abundance* analysis using the methodology
+provided by Bioconductor's `limma` package [@Smyth:2004to]. The methods in
+this package were developed for microarray data analysis, but, it might be as
+well applicable to metabolomics data, given that the peak intensity distribution
+is similar to the signal distribution usually seen in microarray experiments.
+
+```{r }
+## Loading the limma package
+library(limma)
+## Limma setup: define the design matrix KO vs WT
+genot <- xset$genotype
+dsgn <- model.matrix(~ 0 + genot)
+
+dsgn
+```
+
+The very simple model above could be further extended to include and account for
+e.g. batches in the data etc. Below we fit now the model to the data (the linear
+model is fit to each row/peak in the peak matrix). Subsequently we define the
+contrasts of interest (i.e. the comparison of the sample groups) and estimate
+the p-values for significance of the difference. Finally, we adjust the p-values
+for multiple hypothesis testing using the method from Benjamini and Hochberg.
+
+```{r }
+## Fitting the linear model to the data
+fit <- lmFit(peakMat, design=dsgn)
+
+## Defining the contrasts of interest, i.e. which sample group we want
+## to compare against which.
+contrMat <- makeContrasts(KOvsWT=genotKO - genotWT, levels=dsgn)
+fit <- contrasts.fit(fit, contrMat)
+fit <- eBayes(fit)
+
+## Adjusting the p-values
+padj <- p.adjust(fit$p.value[, "KOvsWT"], method="BH")
+```
+
+We next plot the distribution of raw and adjusted p-values.
+
+```{r xcmsExtensions-xcms-p-value-hist, fig.cap="Distribution of raw (left) and adjusted p-values (right).", width=8, height=4, fig.align="center"}
+par(mfrow=c(1, 2))
+hist(fit$p.value[, "KOvsWT"], breaks=128, main="Raw p-values", col="grey", xlab="p-value")
+hist(padj, breaks=128, xlim=c(0, 1), main="Adjusted p-values", col="grey", xlab="p-value")
+```
+
+An enrichment of small p-values is present in the data, indicating peaks with
+significant difference in abundances. Except from these, there is an about
+uniform distribution of raw p-values, with a slight bias towards bigger
+p-values (suggesting eventual *problems* in the data such as batch effects not
+accounted for etc).
+
+Next we create a volcano plot indicating the difference in abundances (in
+analogy to microarray analysis called *M*, i.e. a log<sub>2</sub> fold change) on the
+x-axis against its significance on the y-axis.
+
+```{r xcmsExtensions-xcms-volcano, fig.cap="Volcano plot. Points in the light blue area represent peaks with a more than two-fold difference in abundance at a 5 percent false discovery rate.", width=6, height=6, fig.align="center"}
+X <- fit$coefficients[, "KOvsWT"]
+Y <- -log10(padj)
+plot(3, 3, pch=NA, xlab="M", ylab=expression(-log[10](p[BH])),
+     xlim=range(X), ylim=range(Y))
+## Plotting the area we would consider to contain significantly different peaks
+rect(xleft=min(X)-1, xright=-1, ybottom=-log10(0.05), ytop=max(Y)+1, col="#377EB810", border=NA)
+rect(xleft=1, xright=max(X)+1, ybottom=-log10(0.05), ytop=max(Y)+1, col="#377EB810", border=NA)
+abline(h=-log10(0.05), col="#377EB880", lty=2)
+abline(v=c(-1, 1), col="#377EB880", lty=2)
+## Plotting the points.
+points(X, Y, col="#00000030", pch=16)
+## Plotting the FDR axis
+Yticks <- pretty(Y)
+Yticks <- Yticks[-length(Yticks)]
+Ylabs <- 100*(10^-Yticks)
+axis(side=4, at=Yticks, label=format(Ylabs, digits=2, scientific=TRUE), cex=par("cex.axis"), las=2)
+mtext(side=4, line=4.2, text="% FDR", cex=par("cex.lab"))
+```
+
+We next select the peaks with a significant difference in abundance (more than
+two-fold different at a 5 percent FDR) and perform a simple compound
+identification for these, based on their M/Z value.
+
+```{r }
+## Select significant peaks
+idx <- which(padj < 0.05 & abs(fit$coefficients[, "KOvsWT"]) > 1)
+## Compiling the result table
+resTable <- cbind(idx=idx, groups(xset)[idx, ],
+		  rawp=fit$p.value[idx, "KOvsWT"],
+		  padj=padj[idx],
+		  M=fit$coefficients[idx, "KOvsWT"])
+
+## Performing the compound identification using the mzmatch method and the
+## internal SimpleCompoundDb based on the median M/Z value and accepting a
+## ppm of 20
+comps <- mzmatch(resTable[, "mzmed"], mz=scDb, ppm=20, mzdev=0.01)
+## Getting the names for the identified compounds.
+compNames <- lapply(comps, function(z){
+    if(any(is.na(z[, 1])))
+	return(NA)
+    tmp <- compounds(scDb, columns="name", filter=CompoundidFilter(z[, 1]))
+    return(tmp[, "name"])
+})
+## Combine multiple compounds into a single one.
+compNames <- lapply(compNames, function(z){
+    return(paste(z, collapse="; "))
+})
+comps <- lapply(comps, function(z){
+    return(c(id=paste(z[, 1], collapse="; "),
+	     deltaMz=paste(z[, 2], collapse="; ")))
+})
+## Combine to the final result table
+resTable <- data.frame(do.call(rbind, comps),
+		       name=unlist(compNames, use.names=FALSE),
+		       resTable, stringsAsFactors=FALSE)
+## Order the table by significance
+resTable <- resTable[order(resTable$rawp), ]
+```
+
+The top 6 most significant peaks are shown below; none of them was identified by
+their M/Z value.
+
+```{r }
+head(resTable[, c("id", "mzmed", "rtmed", "padj", "M")])
+```
+
+At last we plot the chromatogram and the spectrum for the first peak. To this
+end we first extract the MS data from the `xcmsSet` object for the slice defined
+by the M/Z and retention time of the peak, extending these ranges a little such
+that we can see also the neighborhood of the peak.
+
+```{r }
+## Extracting an MSslice from the xcmsSet object
+rtr <- as.numeric(resTable[1, c("rtmin", "rtmax")])
+mzr <- as.numeric(resTable[1, c("mzmin", "mzmax")])
+
+## Extract the slice extending the ranges a little.
+mss <- msSlice(xset, rtrange=grow(rtr, 10), mzrange=grow(mzr, 2))
+```
+
+```{r xcmsExtensions-xcms-first-peak, fig.cap="Chromatogram and spectrum of the most significant peak.", width=8, height=5, fig.align="center", message=FALSE, warning=FALSE}
+par(mfrow=c(1, 2))
+## chromatogram
+plotChromatogram(mss, type="l", col=genoColor[as.character(xset$genotype)])
+## highlighting the peak area.
+abline(v=rtr, col="#00000020", lty=2)
+## spectrum
+plotSpectrum(mss, type="h", col=genoColor[as.character(xset$genotype)])
+abline(v=mzr, col="#00000020", lty=2)
+```
+
+And also for the second peak.
+
+```{r xcmsExtensions-xcms-second-peak, fig.cap="Chromatogram and spectrum of the 2nd significant peak.", width=8, height=5, fig.align="center", message=FALSE, warning=FALSE}
+rtr <- as.numeric(resTable[2, c("rtmin", "rtmax")])
+mzr <- as.numeric(resTable[2, c("mzmin", "mzmax")])
+
+## Extract the slice extending the ranges a little.
+mss <- msSlice(xset, rtrange=grow(rtr, 10), mzrange=grow(mzr, 2))
+
+par(mfrow=c(1, 2))
+plotChromatogram(mss, type="l", col=genoColor[as.character(xset$genotype)])
+## highlighting the peak area.
+abline(v=rtr, col="#00000020", lty=2)
+## spectrum
+plotSpectrum(mss, type="h", col=genoColor[as.character(xset$genotype)])
+abline(v=mzr, col="#00000020", lty=2)
+```
+
+Surprisingly, the peaks don't look very much aligned (i.e. retention time
+corrected).
+
+Plotting the MS data for the most significant peak before and after retention
+time correction.
+
+```{r xcmsExtensions-xcms-first-peak-before-affter-rt, fig.cap="Chromatogram and spectrum of the most significant peak before (left) and after (right) retention time correction.", width=8, height=5, fig.align="center", message=FALSE, warning=FALSE}
+rtr <- as.numeric(resTable[1, c("rtmin", "rtmax")])
+mzr <- as.numeric(resTable[1, c("mzmin", "mzmax")])
+
+## Extract the slice from the data before retention time correction
+mssBefore <- subset(fullData, rtrange=grow(rtr, 10), mzrange=grow(mzr, 2))
+
+mssAfter <- msSlice(xset, rtrange=grow(rtr, 10), mzrange=grow(mzr, 2))
+
+par(mfrow=c(1, 2))
+plotChromatogram(mssBefore, type="l", col=genoColor[as.character(xset$genotype)])
+abline(v=rtr, col="#00000020", lty=2)
+## After retention time correction.
+plotChromatogram(mssAfter, type="l", col=genoColor[as.character(xset$genotype)])
+abline(v=rtr, col="#00000020", lty=2)
+```
+
+Retention time correction was not able to align that peak properly. Checking
+also for peaks listed in the original vignette from the `xcms` package.
 
 # Alternative way to access data in `xcmsRaw` objects
 

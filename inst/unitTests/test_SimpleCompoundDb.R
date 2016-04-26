@@ -21,7 +21,7 @@ test_mzmatch_db <- function(){
     queryMz <- realMz - (floor(realMz) / 1000000) * 10
     comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348, queryMz)
 
-    Res <- mzmatch(comps, scDb)
+    Res <- mzmatch(comps, scDb, column="avg_molecular_weight")
 
     ## Compare that to the mzmatch on integer, integer.
     masses <- compounds(scDb, columns=c("accession", "avg_molecular_weight"))
@@ -30,13 +30,57 @@ test_mzmatch_db <- function(){
     Res2 <- lapply(Res2, function(z){
         if(!any(is.na(z[, 1]))){
             return(data.frame(idx=masses[z[, 1], "accession"],
-                              dist=z[, 2], stringsAsFactors=FALSE)
+                              deltaMz=z[, 2], stringsAsFactors=FALSE)
                    )
         }else{
-            return(data.frame(idx=NA, dist=NA))
+            return(data.frame(idx=NA, deltaMz=NA))
         }
     })
-    checkEquals(unlist(Res, use.names=FALSE), unlist(Res2, use.names=FALSE))
+    tmp1 <- do.call(rbind, Res)
+    tmp2 <- do.call(rbind, Res2)
+    tmp2 <- cbind(tmp2, adduct=rep("M", nrow(tmp2)), stringsAsFactors=FALSE)
+    rownames(tmp1) <- NULL
+    rownames(tmp2) <- NULL
+    checkEquals(tmp1, tmp2)
+
+    ## Error checking
+    checkException(mzmatch(comps, scDb, ionAdduct="sdfdkjf"))
+}
+
+test_mzmatch_db_new <- function(){
+    ## This uses now the ion adducts.
+    realMz <- c(169.2870, 169.5650, 346.4605)
+
+    queryMz <- realMz - (floor(realMz) / 1000000) * 10
+    comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348, queryMz)
+
+    Res <- xcmsExtensions:::.mzmatchCompoundDbSQL(comps, scDb)
+
+    ## Test the new one.
+    Res2 <- xcmsExtensions:::.mzmatchMassCompoundDbSql(comps, mz=scDb, ionAdduct=NULL)
+    Res <- do.call(rbind, Res)
+    Res2 <- do.call(rbind, Res2)
+    rownames(Res) <- NULL
+    rownames(Res2) <- NULL
+    checkEquals(Res, Res2[, 1:2])
+
+    ## Test the other new one.
+    Res3 <- xcmsExtensions:::.mzmatchMassPpmCompoundDbSql(comps, mz=scDb, ionAdduct=NULL)
+    Res3 <- do.call(rbind, Res3)
+    rownames(Res3) <- NULL
+    checkEquals(Res, Res3[, 1:2])
+
+    ## The full version with ppm on the MZ
+    Res4 <- xcmsExtensions:::.mzmatchMassCompoundDbSql(comps, mz=scDb,
+                                                       ionAdduct=supportedIonAdducts())
+    ## and ppm on the mass
+    Res5 <- xcmsExtensions:::.mzmatchMassPpmCompoundDbSql(comps, mz=scDb,
+                                                          ionAdduct=supportedIonAdducts())
+    tmp1 <- Res4[[1]]
+    rownames(tmp1) <- NULL
+    tmp2 <- Res5[[1]]
+    rownames(tmp2) <- NULL
+    checkEquals(tmp1, tmp2)
 }
 
 notrun_mzmatch_performance <- function(){

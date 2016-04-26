@@ -46,7 +46,8 @@
 \S4method{listTables}{SimpleCompoundDb}(x, ...)
 
 \S4method{mzmatch}{numeric,SimpleCompoundDb}(x, mz, mzdev=0, ppm=10,
-                                             column="avg_molecular_weight")
+                                             column="monoisotopic_molecular_weight",
+                                             ionAdduct=NULL)
 
 SimpleCompoundDb(x)
 
@@ -74,6 +75,14 @@ SimpleCompoundDb(x)
     \code{BasicFilter} class defined in the
     \code{ensembldb} package. See help for
     \code{\link{CompoundidFilter}} for supported filters.
+  }
+
+  \item{ionAdduct}{
+    The name(s) of the suspected ion adducts of the measured M/Z
+    values. By default (\code{ionAdduct=NULL}) it is assumed that the
+    searched compount is already an ion. See
+    \code{\link{supportedIonAdducts}} for a complete list of available
+    ion adducts.
   }
 
   \item{mz}{
@@ -201,15 +210,28 @@ SimpleCompoundDb(x)
 \section{Compound identification}{
   \describe{
     \item{mzmatch}{
-      Matches the given masses (M/Z) values with the M/Z values of
+      Matches the given M/Z values with the masses of
       compounds in the database and returns the matches if the
-      \code{"deltaMz"} was smaller than the specified threshold. As the
+      \code{"deltaMz"} was smaller than the specified threshold. By
+      default the method assumes that the M/Z corresponds to the mass of
+      the compound, i.e. that the measured feature is already an
+      ion. With the argument \code{ionAdduct} it is possible to specify
+      the assumed ion adduct of the real compound that is measured in
+      the MS. It is possible to specify single adduct names, or all
+      possible (i.e. the most commonly found) ion adducts according to
+      the Fiehn lab's ESI MS adduct calculator [Huang 1999]. In that case, the mass
+      of the possible adduct is calculated for each input M/Z and this
+      mass is looked up in the database. The \code{ppm} and \code{mzdev}
+      arguments are used for the mass search.
+
+      As the
       generic \code{\link{mzmatch}} method, this method returns a
       \code{list}, each of the elements representing the result for one of
       the specified masses provided as a two-column matrix \code{"idx"}
       and \code{deltaMz}, \code{"idx"} containing the compound IDs,
       \code{"deltaMz"} the difference of the specified mass and the
-      compound's M/Z. For more details see the \code{\link{mzmatch}}
+      compound's M/Z. The ion adduct name is provided as third column
+      (\code{"adduct"}). For more details see the \code{\link{mzmatch}}
       method help.
     }
   }
@@ -225,7 +247,16 @@ SimpleCompoundDb(x)
 \seealso{
   \code{\link[xcms]{xcmsSet}}, \code{\link[xcms]{xcmsRaw}},
   \code{\link{MSdata}}, \code{\link{MSsliceList}},
-  \code{\link{CompoundidFilter}}, \code{\link{mzmatch}}
+  \code{\link{CompoundidFilter}}, \code{\link{mzmatch}},
+  \code{\link{supportedIonAdduct}}
+}
+\references{
+  Huang N, Siegel MM, Kruppa GH & Laukien FH (1999) Automation of a
+  Fourier transform ion cyclotron resonance mass spectrometer for
+  acquisition, analysis, and e-mailing of high-resolution exact-mass
+  electrospray ionization mass spectral data. \emph{Journal of the
+    American Society for Mass Spectrometry}. pp1166-1173.
+
 }
 \examples{
 
@@ -253,7 +284,9 @@ res
 
 ## Perform a compound identification.
 ## Define masses which we would like to identify, i.e. match against the
-## compounds in the database.
+## compounds in the database. In the default case it is expected that the
+## measured features are ions and that the M/Z corresponds already to the
+## mass.
 comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348)
 Res <- mzmatch(comps, scDb)
 
@@ -262,10 +295,17 @@ Res <- mzmatch(comps, scDb)
 ## in the database NA is returned.
 Res
 
-## Getting the compound name for the 4th mass.
-cf <- CompoundidFilter(Res[[4]][, 1])
-res <- compounds(scDb, filter=cf, columns=c("name", "inchikey"))
+## Getting the compound name for the 2nd mass.
+cf <- CompoundidFilter(Res[[2]][, 1])
+res <- compounds(scDb, filter=cf, columns=c("name", "inchikey", "monoisotopic_molecular_weight"))
 res
+
+## Next we match the masses of all possible positive ion adducts that would result in the input M/Z
+Res <- mzmatch(comps, scDb, ionAdduct=supportedIonAdducts(charge="pos"))
+## Removing adducts that would not match.
+lapply(Res, function(x){
+    return(x[!is.na(x[, 1]), ])
+})
 
 ## Perform some basic SQL queries.
 require(RSQLite)

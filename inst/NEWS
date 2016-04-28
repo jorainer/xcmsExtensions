@@ -1,3 +1,10 @@
+CHANGES IN VERSION 0.0.9
+------------------------
+
+BUG FIXES
+    o RSD (relative standard deviation) was calculated wrong for peakGroupSummary.
+
+
 CHANGES IN VERSION 0.0.8
 ------------------------
 

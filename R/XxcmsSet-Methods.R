@@ -24,7 +24,7 @@ setMethod("peakGroupSummary", "xcmsSet", function(object, class, value="into"){
             return(c(minInt=min(zs),
                      maxInt=max(zs),
                      meanInt=mz,
-                     RSD=mz/sd(zs),
+                     RSD=sd(zs)/mz,
                      propPresent=length(zs)/length(z)))
         })
         return(t(res))

@@ -62,8 +62,8 @@ visualizeXcmsSet(...)
 
     \item{peakGroupSummary}{
       Calculates and returns peak group summaries, i.e. the minimal,
-      maximal and mean intensity, the RSD (mean intensity divided by its
-      standard intensity) and the proportion of samples in which the
+      maximal and mean intensity, the RSD (relative standard deviation
+      of coefficient of variationy) and the proportion of samples in which the
       peak was identified. These summaries are calculated for groups of
       samples specified with the \code{class} argument, which defaults
       to the classes defined in the \code{xcmsSet} (returned by the

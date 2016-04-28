@@ -4,16 +4,96 @@
 ####------------------------------------------------------------
 
 ####============================================================
+##  assayData
+##
+##  Get the MSdata objects.
+####------------------------------------------------------------
+setMethod("assayData", "MSslice", function(object){
+    return(object@assayData)
+})
+setReplaceMethod("assayData", "MSslice", function(object, value){
+    if(is(value, "MSdata"))
+        value <- list(value)
+    if(!is(value, "list"))
+        stop("'value' has to be a 'list' of 'MSdata' objects.")
+    if(!all(unlist(lapply(value, function(z){
+        return(is(z, "MSdata"))
+    }))))
+        stop("'value' has to be a 'list' of 'MSdata' objects.")
+    ## Update the mzrange and the rtrange.
+    if(length(value) > 0){
+        mzrs <- lapply(value, mzrange)
+        rtrs <- lapply(value, rtrange)
+        rtrange <- range(unlist(mzrs))
+        mzrange <- range(unlist(rtrs))
+    }else{
+        rtrange <- numeric()
+        mzrange <- numeric()
+    }
+    object@assayData <- value
+    object@mzrange <- mzrange
+    object@rtrange <- rtrange
+    validObject(object)
+    return(object)
+})
+
+####============================================================
+##  $
+##
+##  Access columns in the phenoData data.frame.
+####------------------------------------------------------------
+setMethod("$", "MSslice", function(x, name){
+    vals <- eval(substitute(phenoData(x)$NAME_ARG, list(NAME_ARG=name)))
+    return(vals)
+})
+
+####============================================================
+##  phenoData
+##
+##
+####------------------------------------------------------------
+setMethod("phenoData", "MSslice", function(object){
+    return(object@phenoData)
+})
+setReplaceMethod("phenoData", "MSslice", function(object, value){
+    if(is(value, "data.frame"))
+        value <- AnnotatedDataFrame(value)
+    if(!is(value, "AnnotatedDataFrame"))
+        stop("'value' has to be an AnnotatedDataFrame!")
+    object@phenoData <- value
+    validObject(object)
+    return(object)
+})
+
+####============================================================
+##  pData
+##
+##
+####------------------------------------------------------------
+setMethod("pData", "MSslice", function(object){
+    return(pData(object@phenoData))
+})
+setReplaceMethod("pData", "MSslice", function(object, value){
+    if(!is(value, "data.frame"))
+        stop("'value' has to be an data.frame!")
+    pData(object@phenoData) <- value
+    validObject(object)
+    return(object)
+})
+
+
+####============================================================
 ##  show
 ##
 ####------------------------------------------------------------
 setMethod("show", "MSslice", function(object){
     cat(class(object), " object:\n", sep="")
-    cat("| Number of MSdata objects: ", length(object@data), "\n", sep="")
+    cat("| Number of MSdata objects: ", length(assayData(object)), "\n", sep="")
     if(length(object@mzrange) == 2)
         cat("| m/z range: ", object@mzrange[1], " - ", object@mzrange[2], "\n", sep="")
     if(length(object@rtrange) == 2)
         cat("| RT range: ", object@rtrange[1], " - ", object@rtrange[2], "\n", sep="")
+    ##callNextMethod()
 })
 
 ####============================================================
@@ -25,17 +105,17 @@ setMethod("names", "MSslice", function(x){
     ## if(length(x@names) == 0)
     ##     return(NULL)
     ## return(x@names)
-    return(names(x@data))
+    return(names(assayData(x)))
 })
 setReplaceMethod("names", "MSslice", function(x, value){
     ## if(!is(value, "character"))
     ##     value <- as.character(value)
     ## x@names <- value
     ## validObject(x)
-    if(length(value) != length(x@data)){
+    if(length(value) != length(assayData(x))){
         stop("The number of provided names does not match the number of internal MSdata objects!")
     }
-    names(x@data) <- value
+    names(assayData(x)) <- value
     validObject(x)
     return(x)
 })
@@ -74,7 +154,7 @@ setMethod("intrange", "MSslice", function(object){
 ##  Get the MSdata object.
 ####------------------------------------------------------------
 setMethod("msData", "MSslice", function(object, ...){
-    return(object@data)
+    return(assayData(object))
 })
 
 ####============================================================
@@ -83,7 +163,7 @@ setMethod("msData", "MSslice", function(object, ...){
 ##  Get the number of MSdata objects
 ####------------------------------------------------------------
 setMethod("length", "MSslice", function(x){
-    return(length(x@data))
+    return(length(assayData(x)))
 })
 
 ####============================================================
@@ -311,7 +391,7 @@ setMethod("binMz", "MSslice",
                   tmp <- MSslice(lapply(msData(object), function(z, theFun){
                       return(binMz(z, bins=bins, FUN=theFun))
                   }, theFun=FUN))
-                  tmp@call <- match.call()
+                  ##tmp@call <- match.call()
                   return(tmp)
               }
           })
@@ -351,7 +431,7 @@ setMethod("binRtime", "MSslice",
                   tmp <- MSslice(lapply(msData(object), function(z, theFun){
                       return(binRtime(z, bins=bins, FUN=theFun))
                   }, theFun=FUN))
-                  tmp@call <- match.call()
+                  ##tmp@call <- match.call()
                   return(tmp)
               }
           })
@@ -404,7 +484,8 @@ setMethod("subset", "MSslice",
                   return(x)
               }
               ## Subset each of the internal MSdata objects.
-              return(MSslice(lapply(msData(x), FUN=subset, mzrange=mzrange, rtrange=rtrange)))
+              return(MSslice(lapply(msData(x), FUN=subset, mzrange=mzrange, rtrange=rtrange),
+                             phenoData=phenoData(x)))
           })
 
 
@@ -425,7 +506,12 @@ setMethod("subset", "MSslice",
     if(missing(i))
         i <- 1:haveEls
     i <- .checkElementIndices(i, haveEls, names(x))
-    return(MSslice(msData(x)[i]))
+    if(nrow(pData(x)) > 0){
+        pd <- phenoData(x)[i, , drop=FALSE]
+    }else{
+        pd <- AnnotatedDataFrame()
+    }
+    return(MSslice(msData(x)[i], phenoData=pd))
 }
 setMethod("[", "MSslice", .bracketMSsliceSubset)
 
@@ -444,3 +530,450 @@ setMethod("[", "MSslice", .bracketMSsliceSubset)
     return(msData(x)[[1]])
 }
 setMethod("[[", "MSslice", .dbracketMSsliceSubset)
+
+
+
+##################### OLD STUFF BELOW ##########################
+
+
+## ####============================================================
+## ##  show
+## ##
+## ####------------------------------------------------------------
+## setMethod("show", "MSslice", function(object){
+##     cat(class(object), " object:\n", sep="")
+##     cat("| Number of MSdata objects: ", length(object@data), "\n", sep="")
+##     if(length(object@mzrange) == 2)
+##         cat("| m/z range: ", object@mzrange[1], " - ", object@mzrange[2], "\n", sep="")
+##     if(length(object@rtrange) == 2)
+##         cat("| RT range: ", object@rtrange[1], " - ", object@rtrange[2], "\n", sep="")
+## })
+
+## ####============================================================
+## ##  names
+## ##
+## ##  Get the names of the MSdata inside.
+## ####------------------------------------------------------------
+## setMethod("names", "MSslice", function(x){
+##     ## if(length(x@names) == 0)
+##     ##     return(NULL)
+##     ## return(x@names)
+##     return(names(x@data))
+## })
+## setReplaceMethod("names", "MSslice", function(x, value){
+##     ## if(!is(value, "character"))
+##     ##     value <- as.character(value)
+##     ## x@names <- value
+##     ## validObject(x)
+##     if(length(value) != length(x@data)){
+##         stop("The number of provided names does not match the number of internal MSdata objects!")
+##     }
+##     names(x@data) <- value
+##     validObject(x)
+##     return(x)
+## })
+
+## ####============================================================
+## ##  rtrange
+## ##
+## ##  Getter the rtrange slot.
+## ####------------------------------------------------------------
+## setMethod("rtrange", "MSslice", function(object){
+##     return(object@rtrange[1:2])
+## })
+
+## ####============================================================
+## ##  mzrange
+## ##
+## ##  Getter the mzrange slot.
+## ####------------------------------------------------------------
+## setMethod("mzrange", "MSslice", function(object){
+##     return(object@mzrange[1:2])
+## })
+
+## ####============================================================
+## ##  intrange
+## ##
+## ##  Get the intensity range.
+## ####------------------------------------------------------------
+## setMethod("intrange", "MSslice", function(object){
+##     ints <- range(unlist(lapply(msData(object), intrange)))
+##     return(ints)
+## })
+
+## ####============================================================
+## ##  msData
+## ##
+## ##  Get the MSdata object.
+## ####------------------------------------------------------------
+## setMethod("msData", "MSslice", function(object, ...){
+##     return(object@data)
+## })
+
+## ####============================================================
+## ##  length
+## ##
+## ##  Get the number of MSdata objects
+## ####------------------------------------------------------------
+## setMethod("length", "MSslice", function(x){
+##     return(length(x@data))
+## })
+
+## ####============================================================
+## ##  getChromatogram
+## ##
+## ##  Extracts the chromatogram and returns a matrix with the values.
+## ####------------------------------------------------------------
+## setMethod("getChromatogram", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL, ...){
+##               if(!is.null(nbin) & !is.null(binSize))
+##                   stop("Arguments 'nbin' and 'binSize' are mutually exclusive!")
+##               ## Argument checking
+##               if(!is.null(bins)){
+##                   if(!is.numeric(bins) | length(bins) < 2)
+##                       stop("'bins' should be a numeric vector of length > 2",
+##                            " specifying the bins in which the data should be binned.")
+##               }
+##               if(!is.null(nbin)){
+##                   if(!is.numeric(nbin) | length(nbin) > 1)
+##                       stop("'nbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(binSize)){
+##                   if(!is.numeric(binSize) | length(binSize) > 1)
+##                       stop("'binSize' should be a numeric vector of length 1!")
+##               }
+##               ## Extract a list with a chromatogram-matrix for each sample.
+##               chrL <- .getChromList(object, FUN=FUN, bins=bins, nbin=nbin,
+##                                     binSize=binSize)
+##               return(.list2mat(chrL))
+##           })
+## ## That one extracts the chromatogram and returns a list with matrices,
+## ## one for each MSdata.
+## .getChromList <- function(x, FUN=max, bins=NULL, nbin=NULL, binSize=NULL){
+##     if(is.null(bins)){
+##         if(!is.null(nbin) | !is.null(binSize)){
+##             bins <- .getBins(rtrange(x), nbin=nbin, binSize=binSize)
+##             nbin <- NULL
+##             binSize <- NULL
+##         }
+##     }
+##     resList <- lapply(msData(x), FUN=function(z, theFun){
+##         return(getChromatogram(z, FUN=theFun, bins=bins, nbin=nbin,
+##                                binSize=binSize))
+##     }, theFun=FUN)
+##     return(resList)
+## }
+## ## This function converts a list into a matrix.
+## .list2mat <- function(x){
+##     ## Get the list of unique time points
+##     unt <- sort(unique(unlist(lapply(x, function(z)z[,1]))))
+##     vals <- lapply(x, function(z){
+##         tmp <- rep(NA, length(unt))
+##         tmp[match(z[, 1], unt)] <- z[, 2]
+##         return(tmp)
+##     })
+##     Res <- do.call(cbind, vals)
+##     rownames(Res) <- unt
+##     return(Res)
+## }
+
+## ####============================================================
+## ##  plotChromatogram
+## ##
+## ##  Basically, plotting a chromatogram for each of the samples.
+## ####------------------------------------------------------------
+## setMethod("plotChromatogram", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
+##                    main=paste(format(mzrange(object), 2), collapse="-"),
+##                    xlab="Retention time", ylab="Intensity", col=1, lty=1,
+##                    ...){
+##               ## col and lty check
+##               if(length(col) > 1){
+##                   if(length(col) != length(object)){
+##                       warning("Length of 'col' does not match length of 'object';",
+##                               " using only the first value.")
+##                       col <- rep(col[1], length(object))
+##                   }
+##               }else{
+##                   col <- rep(col, length(object))
+##               }
+##               if(length(lty) > 1){
+##                   if(length(lty) != length(object)){
+##                       warning("Length of 'lty' does not match length of 'object';",
+##                               " using only the first value.")
+##                       lty <- rep(lty[1], length(object))
+##                   }
+##               }else{
+##                   lty <- rep(lty, length(object))
+##               }
+##               chrM <- getChromatogram(object, FUN=FUN, bins=bins, nbin=nbin,
+##                                       binSize=binSize)
+##               ## Do some rounding here???
+##               xVals <- round(as.numeric(rownames(chrM)), digits=2)
+##               xlim <- range(xVals)
+##               ylim <- range(chrM, na.rm=TRUE)
+##               ## Plot the empty plot.
+##               plot(3, 3, pch=NA, main=main, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim)
+##               ## plot the individual chromatograms; for loop.
+##               for(i in 1:ncol(chrM)){
+##                   ## We might want to remove the "NA" values here, though.
+##                   nas <- is.na(chrM[, i])
+##                   points(xVals[!nas], chrM[!nas, i], col=col[i], lty=lty[i], ...)
+##               }
+##           })
+
+## ####============================================================
+## ##  getSpectrum
+## ##
+## ##  The same as getChromatogram, but for the spectrum.
+## ####------------------------------------------------------------
+## setMethod("getSpectrum", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL, ...){
+##               if(!is.null(nbin) & !is.null(binSize))
+##                   stop("Arguments 'nbin' and 'binSize' are mutually exclusive!")
+##               ## Argument checking
+##               if(!is.null(bins)){
+##                   if(!is.numeric(bins) | length(bins) < 2)
+##                       stop("'bins' should be a numeric vector of length > 2",
+##                            " specifying the bins in which the data should be binned.")
+##               }
+##               if(!is.null(nbin)){
+##                   if(!is.numeric(nbin) | length(nbin) > 1)
+##                       stop("'nbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(binSize)){
+##                   if(!is.numeric(binSize) | length(binSize) > 1)
+##                       stop("'binSize' should be a numeric vector of length 1!")
+##               }
+##               ## Extract a list with a chromatogram-matrix for each sample.
+##               spcL <- .getSpecList(object, FUN=FUN, bins=bins, nbin=nbin,
+##                                    binSize=binSize)
+##               return(.list2mat(spcL))
+##           })
+## ## That one extracts the chromatogram and returns a list with matrices,
+## ## one for each MSdata.
+## .getSpecList <- function(x, FUN=max, bins=NULL, nbin=NULL, binSize=NULL){
+##     if(is.null(bins)){
+##         if(!is.null(nbin) | !is.null(binSize)){
+##             bins <- .getBins(mzrange(x), nbin=nbin, binSize=binSize)
+##             nbin <- NULL
+##             binSize <- NULL
+##         }
+##     }
+##     resList <- lapply(msData(x), FUN=function(z, theFun){
+##         return(getSpectrum(z, FUN=theFun, bins=bins, nbin=nbin,
+##                            binSize=binSize))
+##     }, theFun=FUN)
+##     return(resList)
+## }
+
+## ####============================================================
+## ##  plotSpectrum
+## ##
+## ##  Basically, plotting a spectrum for each of the samples.
+## ####------------------------------------------------------------
+## setMethod("plotSpectrum", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL,
+##                    main=paste(format(rtrange(object), 2), collapse="-"),
+##                    xlab="M/Z", ylab="Intensity", col=1, lty=1,
+##                    ...){
+##               ## col and lty check
+##               if(length(col) > 1){
+##                   if(length(col) != length(object)){
+##                       warning("Length of 'col' does not match length of 'object';",
+##                               " using only the first value.")
+##                       col <- rep(col[1], length(object))
+##                   }
+##               }else{
+##                   col <- rep(col, length(object))
+##               }
+##               if(length(lty) > 1){
+##                   if(length(lty) != length(object)){
+##                       warning("Length of 'lty' does not match length of 'object';",
+##                               " using only the first value.")
+##                       lty <- rep(lty[1], length(object))
+##                   }
+##               }else{
+##                   lty <- rep(lty, length(object))
+##               }
+##               spcM <- getSpectrum(object, FUN=FUN, bins=bins, nbin=nbin, binSize=binSize)
+##               xVals <- as.numeric(rownames(spcM))
+##               xlim <- range(xVals)
+##               ylim <- range(spcM, na.rm=TRUE)
+##               ## Plot the empty plot.
+##               plot(3, 3, pch=NA, main=main, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim)
+##               ## plot the individual chromatograms; for loop.
+##               for(i in 1:ncol(spcM)){
+##                   nas <- is.na(spcM[, i])
+##                   points(xVals[!nas], spcM[!nas, i], col=col[i], lty=lty[i], ...)
+##               }
+##           })
+
+## ####============================================================
+## ##  binMz
+## ##
+## ##  Bin each of the internal MSdata objects based on the range of the
+## ##  full data set.
+## ####------------------------------------------------------------
+## setMethod("binMz", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL){
+##               if(!is.null(nbin) & !is.null(binSize))
+##                   stop("Arguments 'nbin' and 'binSize' are mutually exclusive")
+##               ## Input arg checking... at least to some degree.
+##               if(!is.null(bins)){
+##                   if(!is.numeric(bins) | length(bins) < 2)
+##                       stop("'bins' should be a numeric vector of length > 2",
+##                            " specifying the bins in which the data should be binned.")
+##               }
+##               if(!is.null(nbin)){
+##                   if(!is.numeric(nbin) | length(nbin) > 1)
+##                       stop("'nbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(binSize)){
+##                   if(!is.numeric(binSize) | length(binSize) > 1)
+##                       stop("'binSize' should be a numeric vector of length 1!")
+##               }
+##               if(is.null(nbin) & is.null(bins) & is.null(binSize)){
+##                   ## Well, just return the object.
+##                   return(object)
+##               }else{
+##                   ## Define the bins; ideally using the full M/Z
+##                   if(missing(bins)){
+##                       bins <- .getBins(mzrange(object), nbin=nbin, binSize=binSize)
+##                   }
+##                   tmp <- MSslice(lapply(msData(object), function(z, theFun){
+##                       return(binMz(z, bins=bins, FUN=theFun))
+##                   }, theFun=FUN))
+##                   tmp@call <- match.call()
+##                   return(tmp)
+##               }
+##           })
+
+## ####============================================================
+## ##  binRtime
+## ##
+## ##  Bin each of the internal MSdata objects based on the range of the
+## ##  full data set.
+## ####------------------------------------------------------------
+## setMethod("binRtime", "MSslice",
+##           function(object, FUN=max, bins=NULL, nbin=NULL, binSize=NULL){
+##               if(!is.null(nbin) & !is.null(binSize))
+##                   stop("Arguments 'nbin' and 'binSize' are mutually exclusive")
+##               ## Input arg checking... at least to some degree.
+##               if(!is.null(bins)){
+##                   if(!is.numeric(bins) | length(bins) < 2)
+##                       stop("'bins' should be a numeric vector of length > 2",
+##                            " specifying the bins in which the data should be binned.")
+##               }
+##               if(!is.null(nbin)){
+##                   if(!is.numeric(nbin) | length(nbin) > 1)
+##                       stop("'nbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(binSize)){
+##                   if(!is.numeric(binSize) | length(binSize) > 1)
+##                       stop("'binSize' should be a numeric vector of length 1!")
+##               }
+##               if(is.null(nbin) & is.null(bins) & is.null(binSize)){
+##                   ## Well, just return the object.
+##                   return(object)
+##               }else{
+##                   ## Define the bins; ideally using the full M/Z
+##                   if(missing(bins)){
+##                       bins <- .getBins(rtrange(object), nbin=nbin, binSize=binSize)
+##                   }
+##                   tmp <- MSslice(lapply(msData(object), function(z, theFun){
+##                       return(binRtime(z, bins=bins, FUN=theFun))
+##                   }, theFun=FUN))
+##                   tmp@call <- match.call()
+##                   return(tmp)
+##               }
+##           })
+
+
+## ####============================================================
+## ##  binMzRtime
+## ##
+## ##  Bin each of the internal MSdata objects based on the range of the
+## ##  full data set.
+## ####------------------------------------------------------------
+## setMethod("binMzRtime", "MSslice",
+##           function(object, FUN=max, mzNbin=NULL, mzBinSize=NULL,
+##                    rtNbin=NULL, rtBinSize=NULL){
+##               ## Argument checking.
+##               if(!is.null(mzNbin) & !is.null(mzBinSize))
+##                   stop("Arguments 'mzNbin' and 'mzBinSize' are mutually exclusive.")
+##               if(!is.null(rtNbin) & !is.null(rtBinSize))
+##                   stop("Arguments 'rtNbin' and 'rtBinSize' are mutually exclusive.")
+##               if(!is.null(mzNbin)){
+##                   if(!is.numeric(mzNbin) | length(mzNbin) > 1)
+##                       stop("'mzNbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(mzBinSize)){
+##                   if(!is.numeric(mzBinSize) | length(mzBinSize) > 1)
+##                       stop("'mzBinSize' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(rtNbin)){
+##                   if(!is.numeric(rtNbin) | length(rtNbin) > 1)
+##                       stop("'rtNbin' should be a numeric vector of length 1!")
+##               }
+##               if(!is.null(rtBinSize)){
+##                   if(!is.numeric(rtBinSize) | length(rtBinSize) > 1)
+##                       stop("'rtBinSize' should be a numeric vector of length 1!")
+##               }
+##               ## Do the stuff.
+##               ## NAF, have really to runem sequentially????
+##               tmp <- binMz(object, nbin=mzNbin, binSize=mzBinSize)
+##               return(binRtime(tmp, nbin=rtNbin, binSize=rtBinSize))
+##           })
+
+## ####============================================================
+## ##  subset
+## ##
+## ##  Subset an MSslice object by mz and/or rtrange
+## ####------------------------------------------------------------
+## setMethod("subset", "MSslice",
+##           function(x, mzrange=NULL, rtrange=NULL){
+##               if(is.null(mzrange) & is.null(rtrange)){
+##                   return(x)
+##               }
+##               ## Subset each of the internal MSdata objects.
+##               return(MSslice(lapply(msData(x), FUN=subset, mzrange=mzrange, rtrange=rtrange)))
+##           })
+
+
+## ####============================================================
+## ##  [
+## ##
+## ##  Subset the MSslice by name or index. Returns always an MSslice
+## ##  object.
+## ####------------------------------------------------------------
+## .bracketMSsliceSubset <- function(x, i, j, ..., drop){
+##     if(!missing(j))
+##         stop("Subsetting by columns ('j') is not supported.")
+##     haveEls <- length(msData(x))
+##     if(haveEls == 0){
+##         warning("Can not subset an empty object.")
+##         return(x)
+##     }
+##     if(missing(i))
+##         i <- 1:haveEls
+##     i <- .checkElementIndices(i, haveEls, names(x))
+##     return(MSslice(msData(x)[i]))
+## }
+## setMethod("[", "MSslice", .bracketMSsliceSubset)
+
+## ####============================================================
+## ##  [[
+## ##
+## ##  Subset, extract a single MSdata.
+## ####------------------------------------------------------------
+## .dbracketMSsliceSubset <- function(x, i, j, ...){
+##     if(!missing(j))
+##         stop("Subsetting by 'j' ([[ i, j ]] is not supported!")
+##     if(length(i) > 1)
+##         stop("Can only extract a single element with [[, but ", length(i),
+##              " indices were submitted.")
+##     x <- x[i]
+##     return(msData(x)[[1]])
+## }
+## setMethod("[[", "MSslice", .dbracketMSsliceSubset)

@@ -14,6 +14,7 @@
 \alias{compounds}
 \alias{compounds,SimpleCompoundDb-method}
 \alias{mzmatch,numeric,SimpleCompoundDb-method}
+\alias{mzmatch,matrix,SimpleCompoundDb-method}
 
 \title{A simple metabolite compound database}
 
@@ -46,6 +47,10 @@
 \S4method{listTables}{SimpleCompoundDb}(x, ...)
 
 \S4method{mzmatch}{numeric,SimpleCompoundDb}(x, mz, mzdev=0, ppm=10,
+                                             column="monoisotopic_molecular_weight",
+                                             ionAdduct=NULL)
+
+\S4method{mzmatch}{matrix,SimpleCompoundDb}(x, mz, mzdev=0, ppm=10,
                                              column="monoisotopic_molecular_weight",
                                              ionAdduct=NULL)
 
@@ -118,7 +123,9 @@ SimpleCompoundDb(x)
     SQLite database file name providing the annotations.
 
     For \code{mzmatch}: a numeric vector with the M/Z values that should
-    be matched against the database.
+    be matched against the database or a matrix with two columns (or
+    columns named \code{"mzmin"} and \code{"mzmax"}) specifying the
+    minimum and maximum M/Z of the peak.
 
     For all other methods: a \code{SimpleCompoundDb} object.
   }
@@ -224,7 +231,17 @@ SimpleCompoundDb(x)
       mass is looked up in the database. The \code{ppm} and \code{mzdev}
       arguments are used for the mass search.
 
-      As the
+      If the input argument \code{x} is a matrix specifying the minimal
+      and maximal M/Z value for a peak matching is performed against
+      this range, i.e. the minimum and maximum range is first converted
+      to the corresponding mass and compounds in the database are
+      searched with a mass within the such defined mass range which is
+      extended by the specified ppm. In that case, the reported
+      \code{"deltaMz"} in the result table is also the smallest distance
+      of the compound mass to the mass of the peak (i.e. to the minimal
+      and maximal mass for the \code{minmz} and \code{maxmz}).
+
+      Like the
       generic \code{\link{mzmatch}} method, this method returns a
       \code{list}, each of the elements representing the result for one of
       the specified masses provided as a two-column matrix \code{"idx"}
@@ -248,7 +265,7 @@ SimpleCompoundDb(x)
   \code{\link[xcms]{xcmsSet}}, \code{\link[xcms]{xcmsRaw}},
   \code{\link{MSdata}}, \code{\link{MSsliceList}},
   \code{\link{CompoundidFilter}}, \code{\link{mzmatch}},
-  \code{\link{supportedIonAdduct}}
+  \code{\link{supportedIonAdducts}}
 }
 \references{
   Huang N, Siegel MM, Kruppa GH & Laukien FH (1999) Automation of a

@@ -3,7 +3,7 @@ setClassUnion("MatrixOrNumericOrNull", c("matrix", "numeric", "NULL"))
 setClassUnion("NumericOrNull", c("numeric", "integer","NULL", "missing"))
 setClassUnion("NumericOrMissing", c("numeric", "integer","missing"))
 setClassUnion("LogicalOrMissing", c("logical","missing"))
-
+setClassUnion("AssayData", c("list", "environment"))
 ####============================================================
 ##  MSslice
 ##
@@ -11,7 +11,7 @@ setClassUnion("LogicalOrMissing", c("logical","missing"))
 ##  The class allows to store data from several files, but defined
 ##  by the same region.
 ####------------------------------------------------------------
-setClass("MSslice",
+setClass("MSsliceOld",
          representation(data="list",
                         call="call",
                         mzrange="numeric",
@@ -25,6 +25,32 @@ setClass("MSslice",
              names=character()
          )
          )
+
+## Test what happens if we extend the eSet; it's not build for this type
+## of data, but, well, so what.
+## Methods implemented are:
+## pData
+## experimentData
+## assayData
+## all other "benefits" form the eSet method.
+setClass("MSslice",
+         representation=representation(
+             experimentData="MIAxE",
+             mzrange="numeric",
+             rtrange="numeric",
+             phenoData="AnnotatedDataFrame",
+             assayData="AssayData"
+         ),
+         contains="Versioned",
+         prototype=prototype(
+             new("VersionedBiobase",
+                 versions=c(MSslice="0.0.1")),
+             experimentData=new("MIAPE"),
+             assayData=list(),
+             annotation="No feature annotation.",
+             mzrange=numeric(),
+             rtrange=numeric()))
+
 
 ####============================================================
 ##  MSsliceList

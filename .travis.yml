@@ -35,6 +35,6 @@ notifications:
 
 env:
   global:
-      - RVERSION=release BIOC_USE_DEVEL=FALSE _R_CHECK_FORCE_SUGGESTS_=FALSE COVERAGE=true
+      - RVERSION=release BIOC_USE_DEVEL=FALSE _R_CHECK_FORCE_SUGGESTS_=TRUE COVERAGE=true
 
 

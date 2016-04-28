@@ -5,7 +5,19 @@ library(RUnit)
 xset <- faahko
 suppressWarnings(
     xraw <- getXcmsRaw(xset, 1)
+
 )
+
+test_peakGroupSummary <- function(){
+    checkException(grpsum <- peakGroupSummary(xset))
+    ## group that
+    xs <- group(xset)
+    grpsum <- peakGroupSummary(xs)
+    checkEquals(nrow(grpsum), nrow(groups(xs)))
+    ## Check if the numbers match.
+    checkEquals(unname(grpsum[, "KO.propPresent"]*6), unname(groups(xs)[, "KO"]))
+    checkEquals(unname(grpsum[, "WT.propPresent"]*6), unname(groups(xs)[, "WT"]))
+}
 
 test_msSlice <- function(){
     all <- msSlice(xset, rt="raw")

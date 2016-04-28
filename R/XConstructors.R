@@ -38,18 +38,24 @@ setMethod("initialize", "MSsliceList", function(.Object, ...){
 ##  MSslice
 ##
 ####------------------------------------------------------------
-MSslice <- function(...){
-    data <- list(...)
-    if(length(data) > 0){
-        data <- as.list(unlist(data))
-        obj <- msSlice(data)
+MSslice <- function(x, ...){
+    if(missing(x))
+        return(new("MSslice"))
+    if(is(x, "MSdata"))
+        x <- list(x)
+    if(!is(x, "list"))
+        stop("Argument 'x' has to be a list of MSdata objects!")
+##    data <- list(...)
+    if(length(x) > 0){
+        ## x <- as.list(unlist(data))
+        obj <- msSlice(x, ...)
     }else{
         obj <- new("MSslice")
     }
     validObject(obj)
     return(obj)
 }
-setMethod("msSlice", "list", function(object, call=match.call(), ...){
+setMethod("msSlice", "list", function(object, ...){
     ## Have to evaluate that all elements are MSdata objects.
     if(length(object) > 0){
         if(!all(unlist(lapply(object, function(z){
@@ -65,16 +71,29 @@ setMethod("msSlice", "list", function(object, call=match.call(), ...){
         rtrange <- numeric()
         mzrange <- numeric()
     }
-    res <- new("MSslice", data=object, rtrange=rtrange, mzrange=mzrange,
-               call=call)
+    ## res <- new("MSslice", data=object, rtrange=rtrange, mzrange=mzrange,
+    ##            call=call)
+    res <- new("MSslice", assayData=object, rtrange=rtrange, mzrange=mzrange, ...)
     validObject(res)
     return(res)
 })
 .validateMSslice <- function(object){
-    if(!all(unlist(lapply(object@data, function(z){
-        return(is(z, "MSdata"))
-    }))))
-        return("Only MSdata objects allowed in slot @data!")
+    ## data <- object@data
+    data <- assayData(object)
+    if(length(data) > 0){
+        if(!all(unlist(lapply(data, function(z){
+            return(is(z, "MSdata"))
+        }))))
+            return("Only MSdata objects allowed in slot addayData!")
+    }
+    ## Check the phenoData
+    pd <- phenoData(object)
+    ## nrow pd has to match length of assayData!
+    if(nrow(pd) > 0){
+        if(nrow(pd) != length(data))
+            return("The number of rows of the pheno data does not match the number of MSdata objects!")
+    }
+
     ## ## Check the names slot
     ## if(!is.null(names(object))){
     ##     if(length(object@data) != length(object@names))

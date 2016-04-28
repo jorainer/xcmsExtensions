@@ -17,7 +17,7 @@ shinyUI(fluidPage(
                    uiOutput("rtrange"),
                    uiOutput("mzrange"),
                    selectInput("nbin", label="Number of bins",
-                               choices=c(20, 50, 100, 200, 400, 800, NULL), selected=100),
+                               choices=c(20, 50, 100, 200, 400, 800, 1000, NULL), selected=100),
                    submitButton("Update view"),
                    actionButton("closeButton", "Return & close")
                    ## checkboxInput("chooseCol", "Choose colors"),
@@ -42,4 +42,6 @@ shinyUI(fluidPage(
                )
                )
     )
+))
+
 

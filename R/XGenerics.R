@@ -41,6 +41,9 @@ setGeneric("msData", function(object, ...)
 setGeneric("msSlice", function(object, ...)
     standardGeneric("msSlice"))
 
+setGeneric("peakGroupSummary", function(object, ...)
+    standardGeneric("peakGroupSummary"))
+
 ## For MSsliceList
 setGeneric("slices", function(object, ...)
     standardGeneric("slices"))

@@ -1,3 +1,16 @@
+CHANGES IN VERSION 0.0.8
+------------------------
+
+NEW FEATURES
+    o MSslice class has now a slot phenoData.
+    o phenoData, assayData, phenoData<-, pData, pData<- methods for MSslice objects.
+    o peakGroupSummary method for xcmsSet.
+    o Add binning option to visualizeXcmsSet shiny app.
+
+BUG FIXES
+    o Fix problem in the shiny app.
+
+
 CHANGES IN VERSION 0.0.7
 ------------------------
 

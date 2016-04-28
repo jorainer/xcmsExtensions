@@ -28,6 +28,17 @@
 \alias{binMz,MSslice-method}
 \alias{binRtime,MSslice-method}
 \alias{binMzRtime,MSslice-method}
+%%
+\alias{assayData,MSslice-method}
+\alias{assayData<-,MSslice-method}
+\alias{assayData<-,MSslice,ANY-method}
+\alias{phenoData,MSslice-method}
+\alias{phenoData<-,MSslice-method}
+\alias{phenoData<-,MSslice,ANY-method}
+\alias{pData,MSslice-method}
+\alias{pData<-,MSslice-method}
+\alias{pData<-,MSslice,ANY-method}
+\alias{$,MSslice-method}
 
 \title{MS data subsets of several samples}
 
@@ -51,8 +62,10 @@
 }
 \usage{
 
-\S4method{binMz}{MSslice}(object, FUN=max, bins=NULL, nbin=NULL,
-                         binSize=NULL)
+
+\S4method{assayData}{MSslice}(object)
+
+\S4method{assayData}{MSslice}(object) <- value
 
 \S4method{binMzRtime}{MSslice}(object, FUN=max, mzNbin=NULL,
           mzBinSize=NULL, rtNbin=NULL, rtBinSize=NULL)
@@ -70,13 +83,13 @@
 
 \S4method{length}{MSslice}(x)
 
-MSslice(...)
+MSslice(x, ...)
 
 \S4method{msData}{MSslice}(object, ...)
 
-\S4method{msSlice}{list}(object, call=match.call(), ...)
+\S4method{msSlice}{list}(object, ...)
 
-\S4method{msSlice}{MSdata}(object, call=match.call(), ...)
+\S4method{msSlice}{MSdata}(object, ...)
 
 \S4method{msSlice}{xcmsSet}(object, mzrange=NULL, rtrange=NULL,
                             rt="corrected", BPPARAM=MulticoreParam())
@@ -88,6 +101,14 @@ MSslice(...)
 \S4method{names}{MSslice}(x)
 
 \S4method{names}{MSslice}(x) <- value
+
+\S4method{phenoData}{MSslice}(object)
+
+\S4method{phenoData}{MSslice}(object) <- value
+
+\S4method{pData}{MSslice}(object)
+
+\S4method{pData}{MSslice}(object) <- value
 
 \S4method{plotChromatogram}{MSslice}(object, FUN=max, bins=NULL,
                             nbin=NULL, binSize=NULL,
@@ -141,11 +162,6 @@ MSslice(...)
     parallel processing will most likely not work with the \code{snow},
     thus, on Windows machines there will no parallel processing be
     available.
-  }
-
-  \item{call}{
-    Optional argument allowing to specifying the call that used to
-    generate the object.
   }
 
   \item{col}{
@@ -217,12 +233,25 @@ MSslice(...)
 
   \item{value}{
     For \code{names}: a character vector (length matching the number of
-    \code{\link{MSdata}} objects in the \code{@data} slot) specifying
+    \code{\link{MSdata}} objects in the \code{@assayData} slot) specifying
     names of the individual objects.
+
+    For \code{assayData}: a \code{\link{MSdata}} object or a \code{list}
+    of such objects.
+
+    For \code{phenoData}: a \code{data.frame} or
+    \code{AnnotatedDataFrame} providing the phenotypic annotation of the
+    samples (covariates etc).
+
+    For \code{pData}: a \code{data.frame} providing the phenotypic
+    annotation of the samples.
   }
 
   \item{x}{
-    For \code{length}, \code{names} and \code{subset}: an \code{MSslice} object.
+    For \code{length}, \code{names} and \code{subset}: an \code{MSslice}
+    object.
+
+    For \code{MSslice}: a \code{MSdata} or a list of \code{MSdata} objects.
   }
 
   \item{xlab}{
@@ -234,8 +263,8 @@ MSslice(...)
   }
 
   \item{...}{
-    For \code{MSslice}: \code{\link{MSdata}} objects for the
-    \code{MSslice} object.
+    For \code{MSslice}: additional arguments passed to the constructor
+    (i.e. \code{experimentData} or \code{phenoData}).
 
     For \code{plotChromatogram}: additional graphical parameters to be
     passed down to the base plot function.
@@ -246,12 +275,13 @@ MSslice(...)
 }
 \section{Slots}{
   \describe{
-    \item{data}{
+    \item{assayData}{
       A list of \code{\link{MSdata}} objects.
     }
 
-    \item{call}{
-      The call used to create the object.
+    \item{experimentData}{
+      Object of class \code{\link[MSnbase]{MIAPE}} containing details of
+      experimental methods.
     }
 
     \item{mzrange}{
@@ -259,10 +289,8 @@ MSslice(...)
       values of the slice.
     }
 
-    \item{names}{
-      A optional character vector with the names of the internal
-      \code{MSdata} objects. Has to have the same length than length of
-      the \code{data} slot.
+    \item{phenoData}{
+      An \code{AnnoatedDataFrame} providing the sample description.
     }
 
     \item{rtrange}{
@@ -272,6 +300,9 @@ MSslice(...)
 
   }
 }
+\section{Extends}{
+  Class \code{"Versioned"} defined in the \code{Biobase} package, directly.
+}
 
 \section{Constructors and alike}{
   \describe{
@@ -279,7 +310,9 @@ MSslice(...)
     \item{MSslice}{
       Constructor method to create a new \code{MSslice} instance
       accepting either a list of \code{\link{MSdata}} objects or
-      individual \code{\link{MSdata}} objects.
+      a single \code{\link{MSdata}} object. All additional arguments
+      (e.g. \code{phenoData}, \code{experimentData})
+      are directly passed to the \code{"new"} call.
     }
 
     \item{msSlice}{
@@ -309,6 +342,12 @@ MSslice(...)
 
 \section{Accessing and subsetting}{
   \describe{
+
+    \item{assayData,assayData<-}{
+      Get and set the assay data (i.e. the list of internal
+      \code{MSdata} objects). This method is the same than the
+      \code{msData} method.
+    }
 
     \item{getChromatogram}{
       Extracts a numeric matrix with the chromatogram (i.e. intensities
@@ -384,6 +423,18 @@ MSslice(...)
     \item{object[[i]]}{
       Extract e single \code{\link{MSdata}} object from the
       \code{MSslice} \emph{object}.
+    }
+
+    \item{phenoData,phenoData<-,pData,pData<-}{
+      Get and set the pheno data, i.e. the \code{AnnotatedDataFrame}
+      providing the sample annotation (phenotypic information and
+      covariates). Each row describing one sample each column
+      representing one covariate. The ordering is assumed to be
+      identical to the ordering of the \code{MSdata} objects in the
+      \code{assayData} slot.
+
+      The \code{pData} method accesses the same slot, but returns (and
+      accepts) a \code{data.frame}.
     }
 
     \item{rtrange}{
@@ -472,6 +523,12 @@ xset <- faahko
 rtr <- c(2600, 2670)
 mzr <- c(300, 400)
 mss <- msSlice(xset, rtrange=rtr, mzrange=mzr)
+
+## Access the phenoData
+phenoData(mss)
+
+## Access individual columns using the $ method
+mss$class
 
 ## Get the number of samples
 length(mss)
@@ -563,7 +620,7 @@ msSlice(msd)
 ## Extracting the MSdata from the second sample and passing both to the
 ## MSslice constructor to generate a two-sample MSslice object.
 msd2 <- msData(getXcmsRaw(xset, 2))
-MSslice(msd, msd2)
+MSslice(list(msd, msd2))
 
 
 ####-------------

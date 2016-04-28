@@ -10,7 +10,7 @@ vignette: >
   %\VignetteIndexEntry{Extensions to the xcms package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  %\VignetteDepends{xcmsExtensions,xcms,faahKO}
+  %\VignetteDepends{xcmsExtensions,xcms,faahKO,limma}
   %\VignettePackage{xcmsExtensions}
   %\VignetteKeywords{MassSpectrometry, Metabolomics}
 bibliography: references.bib
@@ -168,7 +168,8 @@ that the matrix could also have less than 30 rows, e.g. if no values would be
 available for a bin.
 
 We next plot the chromatogram, first without binning and add the binned
-chromatogram to that plot.
+chromatogram to that plot. Especially for larger data sets (i.e. with more data
+points) binning provides a considerable speed-up to the plotting process.
 
 ```{r xcmsExtensions-chromatogram-plot, fig.align='center', fig.width=7, fig.height=4, fig.cap="Extracted chromatogram for the data sub set. With (blue) and without (black) binning along the retention time axis."}
 ## Plot the chromatogram.

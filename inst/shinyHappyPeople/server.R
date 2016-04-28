@@ -135,17 +135,17 @@ shinyServer(
             mss <- msSliceData()
             if(!is.null(mss)){
                 rngs <- round(mzrange(mss))
-                sliderInput("mzrange", "rtrange", rngs[1], rngs[2], value=c(rngs[1], rngs[2]),
+                sliderInput("mzrange", "mzrange", rngs[1], rngs[2], value=c(rngs[1], rngs[2]),
                             step=0.1)
             }else{
-                sliderInput("mzrange", "rtrange", -10, -5, value=c(-10, -5), step=0.1)
+                sliderInput("mzrange", "mzrange", -10, -5, value=c(-10, -5), step=0.1)
             }
         })
         ## Dynamic color selection / sample.
         output$colorPicker <- renderUI({
             mss <- msSliceData()
             if(!is.null(mss)){
-                sampIdx <- 1:length(mss@data)
+                sampIdx <- 1:length(assayData(mss))
                 sampNames <- as.character(sampIdx)
                 if(!is.null(names(mss))){
                     sampNames <- names(mss)
@@ -156,7 +156,7 @@ shinyServer(
                     ## textInputSmall(paste0("sampleColor", z), label=sampNames[z], value="black",
                     ##                class="input-mini")
                     ## That requires shinyjs!
-                    colourInput(inputId=paste0("sampleColor", z), label=sampNames[z],
+                    shinyjs::colourInput(inputId=paste0("sampleColor", z), label=sampNames[z],
                                 value="black", allowTransparent=FALSE)
                 })
             }
@@ -187,7 +187,7 @@ shinyServer(
                             mss <- subset(mss, mzrange=mzr)
                 }
                 ## Get the colors...
-                sampColors <- lapply(1:length(mss@data), function(z){
+                sampColors <- lapply(1:length(assayData(mss)), function(z){
                     message("Sample ", z, ":", appendLF=FALSE)
                     theCol <- input[[paste0("sampleColor", z)]]
                     if(is.null(theCol))
@@ -198,8 +198,9 @@ shinyServer(
                 ## Plot chromatogram
                 progress$set(message="Subsetting data", value=2/3)
                 message("Plotting the chromatogram...", appendLF=FALSE)
+                message("nbin: ", input$nbin)
                 plotChromatogram(mss, type="l", col=unlist(sampColors, use.names=FALSE),
-                                 nbin=input$nbin)
+                                 nbin=as.numeric(input$nbin))
                 message("OK")
             }else{
                 ##par()
@@ -226,7 +227,7 @@ shinyServer(
                             mss <- subset(mss, mzrange=mzr)
                 }
                 ## Get the colors...
-                sampColors <- lapply(1:length(mss@data), function(z){
+                sampColors <- lapply(1:length(assayData(mss)), function(z){
                     message("Sample ", z, ":", appendLF=FALSE)
                     theCol <- input[[paste0("sampleColor", z)]]
                     if(is.null(theCol))
@@ -238,7 +239,7 @@ shinyServer(
                 message("Plotting the spectrum...", appendLF=FALSE)
                 message("Plotting the spectrum...", appendLF=FALSE)
                 plotSpectrum(mss, type="l", col=unlist(sampColors, use.names=FALSE),
-                             nbin=input$nbin)
+                             nbin=as.numeric(input$nbin))
                 message("OK")
             }else{
                 ##par()

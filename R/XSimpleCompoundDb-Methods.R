@@ -294,6 +294,150 @@ setMethod("mzmatch", signature(x="numeric", mz="SimpleCompoundDb"),
     }))
 }
 
+####============================================================
+##  mzmatch
+##
+##  mzmatch supporting a matrix with mzmin and mzmax as input. Masses in the database
+##  are then matched against this, i.e. matched if the mass is within the range (+-ppm)
+####------------------------------------------------------------
+setMethod("mzmatch", signature(x="matrix", mz="SimpleCompoundDb"),
+          function(x, mz, mzdev=0, ppm=10, column="monoisotopic_molecular_weight",
+                   ionAdduct=NULL){
+              column <- match.arg(column, c("avg_molecular_weight",
+                                            "monoisotopic_molecular_weight"))
+              ## Check input matrix.
+              if(ncol(x) > 2){
+                  ## Require mzmin and mzmax.
+                  if(!all(c("mzmin", "mzmax") %in% colnames(x)))
+                      stop("If x has more than two columns, it has to have columns named ",
+                           "'mzmin' and 'mzmax'!")
+                  x <- x[, c("mzmin", "mzmax")]
+              }
+              ## Check that min is always <= max
+              if(any((x[, 1] - x[, 2]) > 0))
+                  stop("The first column ('mzmin') is expected to have smaller",
+                       " values than the second ('mzmax').")
+              ## Check if we would have the ion adduct available.
+              adds <- ionAdduct
+              if(!is.null(adds)){
+                  notPresent <- !(adds %in% supportedIonAdducts())
+                  if(all(notPresent))
+                      stop("None of the provided ion adduct names are supported!",
+                           " Use the 'supportedIonAdducts()' method to list all supported names.")
+                  if(any(notPresent)){
+                      warning("Adducts with name ", paste(adds[notPresent], collapes=", "), " are not supported",
+                              " and have thus been removed.")
+                      ionAdduct <- ionAdduct[!notPresent]
+                  }
+              }
+              ## return(.mzmatchCompoundDbSQL(x=x, mz=mz, mzdev=mzdev, ppm=ppm,
+              ##                              column=column))
+              return(.mzmatchMassPpmMatrixCompoundDbSql(x=x, mz=mz, mzdev=mzdev, ppm=ppm,
+                                                  column=column, ionAdduct=ionAdduct))
+          })
+## That's essentially the same than the mzmatchMassPpmCompoundDbSql function,
+## just assuming x is a matrix with mzmin and mzmax. These are first converted
+## to mass, and the ppm is then applied to the mass search.
+.mzmatchMassPpmMatrixCompoundDbSql <- function(x, mz, mzdev=0, ppm=10,
+                                      column="monoisotopic_molecular_weight",
+                                      ionAdduct=NULL){
+    ## Alternative version of the function (eventually faster?):
+    ## o Calculate the mean of
+    fixi <- 1e-9
+    ppm <- ppm/1000000
+    if(ncol(x) != 2)
+        stop("'x' is supposed to be a two-column matrix!")
+    minmasses <- adductmz2mass(x[, 1], ionAdduct=ionAdduct)
+    maxmasses <- adductmz2mass(x[, 2], ionAdduct=ionAdduct)
+    con <- dbconn(mz)
+    df <- data.frame(mzidx=rep(1:nrow(x), length(minmasses)),
+                     adduct=rep(names(minmasses), each=nrow(x)),
+                     minmass=unlist(minmasses, use.names=FALSE),
+                     maxmass=unlist(maxmasses, use.names=FALSE),
+                     stringsAsFactors=FALSE
+                     )
+    res <- lapply(split(df, f=1:nrow(df)), function(z, col){
+        quer <- paste0("select accession, ", col, " from compound_basic where ", col,
+                       " between ", z$minmass - (z$minmass * ppm + mzdev + fixi),
+                       " and ", z$maxmass + (z$maxmass * ppm + mzdev + fixi), ";")
+        tmp <- dbGetQuery(con, quer)
+        if(nrow(tmp) == 0){
+            return(data.frame(idx=NA, deltaMz=NA, mzidx=z$mzidx, adduct=z$adduct,
+                              stringsAsFactors=FALSE))
+        }
+        ## Calculate distance: minimal distance of the mass to the peak defined by min and max mass,
+        ## i.e. the distance is the min of the distance mass to min mass and mass to max mass.
+        massDist <- abs(rowMin(tmp[, col] - as.matrix(z[, c(3, 4)])))
+        return(data.frame(idx=tmp$accession,
+                          deltaMz=massDist,
+                          mzidx=rep(z$mzidx, nrow(tmp)),
+                          adduct=rep(z$adduct, nrow(tmp)),
+                          stringsAsFactors=FALSE))
+    },
+    col=column
+    )
+    ## rbind that and split it again by mzidx; dropping the names later.
+    res <- do.call(rbind, c(res, make.row.names=FALSE))
+    rownames(res) <- NULL
+    ## Split it by index of input.
+    res <- split(res[, c(1, 2, 4)], f=res$mzidx)
+    names(res) <- NULL
+    return(res)
+}
+## Alternative version
+.mzmatchMassPpmMatrixCompoundDbSql2 <- function(x, mz, mzdev=0, ppm=10,
+                                                column="monoisotopic_molecular_weight",
+                                                ionAdduct=NULL){
+    ## Alternative version of the function (eventually faster?):
+    ## o Calculate the mean mz, and an mzdev ()
+    mzMean <- rowMeans(x)
+    ## o The difference to the minz and maxz
+    mzDevs <- abs(mzMean - x[, 1]) + mzdev
+    fixi <- 1e-9
+    ppm <- ppm/1000000
+    if(ncol(x) != 2)
+        stop("'x' is supposed to be a two-column matrix!")
+    ## o Just calculate the mass once.
+    masses <- adductmz2mass(mzMean, ionAdduct=ionAdduct)
+    ## masses is now a list, names being adducts with elements being the calculated
+    ## mass for each of the input mean M/Z
+    con <- dbconn(mz)
+    df <- data.frame(mzidx=rep(1:nrow(x), length(minmasses)),
+                     adduct=rep(names(masses), each=nrow(x)),
+                     meanmass=unlist(masses, use.names=FALSE),
+                     mzdev=rep(mzDevs, length(minmasses)),
+                     stringsAsFactors=FALSE
+                     )
+    res <- lapply(split(df, f=1:nrow(df)), function(z, col){
+        mzd <- z$meanmass * ppm + z$mzdev + fixi
+        quer <- paste0("select accession, ", col, " from compound_basic where ", col,
+                       " between ", z$meamass - mzd,
+                       " and ", z$meanmass + mzd, ";")
+        tmp <- dbGetQuery(con, quer)
+        if(nrow(tmp) == 0){
+            return(data.frame(idx=NA, deltaMz=NA, mzidx=z$mzidx, adduct=z$adduct,
+                              stringsAsFactors=FALSE))
+        }
+        ## Calculate distance.
+        stop("Distance calculation has to be re-checked!")
+        return(data.frame(idx=tmp$accession,
+                          deltaMz=min(abs(tmp[, col] - c(as.numeric(z[1, 3]) - as.numeric(z[1, 4]),
+                                                         as.numeric(z[1, 3]) + as.numeric(z[1, 4])))),
+                          mzidx=rep(z$mzidx, nrow(tmp)),
+                          adduct=rep(z$adduct, nrow(tmp)),
+                          stringsAsFactors=FALSE))
+    },
+    col=column
+    )
+    ## rbind that and split it again by mzidx; dropping the names later.
+    res <- do.call(rbind, c(res, make.row.names=FALSE))
+    rownames(res) <- NULL
+    ## Split it by index of input.
+    res <- split(res[, c(1, 2, 4)], f=res$mzidx)
+    names(res) <- NULL
+    return(res)
+}
+
 
 ####============================================================
 ##  compounds

@@ -1,4 +1,46 @@
 ## Methods for xcmsSet classes.
+
+####============================================================
+##  peakGroupSummary
+##
+##  Calculate summaries for peak groups per sample class.
+####------------------------------------------------------------
+setMethod("peakGroupSummary", "xcmsSet", function(object, class, value="into"){
+    if(missing(class)){
+        ## Using internal class
+        class <- sampclass(object)
+    }else{
+        ## Check class.
+        if(length(class) != length(sampnames(object)))
+            stop("Length of 'class' has to match the number of data files.")
+        if(!is.factor(class))
+            class <- factor(class)
+    }
+    ## Internal function to perform the summary.
+    sumfun <- function(mat){
+        res <- apply(mat, MARGIN=1, function(z){
+            zs <- z[!is.na(z)]
+            mz <- mean(zs)
+            return(c(minInt=min(zs),
+                     maxInt=max(zs),
+                     meanInt=mz,
+                     RSD=mz/sd(zs),
+                     propPresent=length(zs)/length(z)))
+        })
+        return(t(res))
+    }
+    ## OK, now get the group data.
+    gv <- groupval(object, value=value)
+    ## Do the call separately for each level.
+    Res <- do.call(cbind, lapply(levels(class), function(z){
+        return(sumfun(gv[, class==z, drop=FALSE]))
+    }))
+    colnames(Res) <- paste(rep(levels(class), each=5),
+                           c("minInt", "maxInt", "meanInt", "RSD",
+                             "propPresent"), sep=".")
+    return(Res)
+})
+
 ####============================================================
 ##  msSlice
 ##
@@ -29,7 +71,8 @@ setMethod("msSlice", "xcmsSet",
                   ## Just ensure that all are MSslices...
                   if(!all(unlist(lapply(resu, function(z){is(z, "MSslice")}))))
                       stop("Not all of the returned objects are 'MSslice' objects!")
-                  return(MSslice(lapply(resu, msData)))
+                  return(msSlice(object=unlist(lapply(resu, msData)),
+                                 phenoData=AnnotatedDataFrame(phenoData(object))))
               }
               if(is(resu[[1]], "MSsliceList")){
                   if(!all(unlist(lapply(resu, function(z){is(z, "MSsliceList")}))))
@@ -42,9 +85,9 @@ setMethod("msSlice", "xcmsSet",
                   ## new MSslice
                   mslList <- vector("list", Ls)
                   for(i in 1:Ls){
-                      mslList[[i]] <- MSslice(lapply(resu, function(z){
+                      mslList[[i]] <- msSlice(object=unlist(lapply(resu, function(z){
                           return(msData(z@slices[[i]]))
-                      }))
+                      })), phenoData=AnnotatedDataFrame(phenoData(object)))
                   }
                   return(MSsliceList(mslList))
               }else{

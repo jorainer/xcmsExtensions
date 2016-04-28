@@ -104,12 +104,13 @@ setMethod("intrange", "MSdata", function(object){
 ##  Create an MSslice object from the MSdata.
 ####------------------------------------------------------------
 setMethod("msSlice", "MSdata",
-          function(object, call=match.call(), ...){
+          function(object, ...){
               ## if(!is.null(mzrange) | !is.null(rtrange)){
               ##     warning("Ignoring arguments 'mzrange' and 'rtrange' if ")
               ## }
-              res <- new("MSslice", data=list(object), mzrange=mzrange(object),
-                         rtrange=rtrange(object), call=call)
+              res <- msSlice(list(object), ...)
+              ## res <- new("MSslice", data=list(object), mzrange=mzrange(object),
+              ##            rtrange=rtrange(object), call=call)
               validObject(res)
               return(res)
           })

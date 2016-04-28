@@ -5,9 +5,13 @@ import(methods)
 importFrom("Matrix", "sparseMatrix")
 importClassesFrom("Matrix", "sparseMatrix")
 
+##importClassesFrom(Biobase, "eSet") ## eSet
+import(Biobase)
+
 import(BiocGenerics)
 import(ProtGenerics)
 import(MSnbase)
+importFrom("stats", "sd")
 
 ## S4Vectors:
 importFrom("S4Vectors", "Rle", "as.matrix", "runLength")
@@ -49,6 +53,9 @@ importFrom("graphics", "points")
 exportClasses("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb",
               "CompoundidFilter")
 
+## xcmsSet methods
+exportMethods("peakGroupSummary")
+
 ## xcmsRaw methods:
 exportMethods("scantimes", "getData", "msMap")
 
@@ -57,6 +64,9 @@ exportMethods("intensity", "intensity<-", "rtime", "rtime<-", "mz", "mz<-",
               "rtrange", "mzrange", "intrange", "getChromatogram",
               "getSpectrum", "plotChromatogram", "plotSpectrum",
               "binMz", "binRtime", "binMzRtime", "mapMatrix", "subset")
+
+## MSslice methods:
+exportMethods("assayData", "assayData<-", "$", "phenoData", "phenoData<-", "pData", "pData<-")
 
 ## MSsliceList methods:
 exportMethods("slices", "slices<-", "rtranges", "mzranges", "intranges",

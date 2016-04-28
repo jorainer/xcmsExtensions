@@ -12,6 +12,7 @@ suppressWarnings(
 )
 globalMzr <- c(300, 320)
 globalRtr <- c(2500, 2700)
+pd <- phenoData(xset)
 suppressWarnings(
     globalMss <- msSlice(xset, mzrange=globalMzr, rtrange=globalRtr)
 )
@@ -27,6 +28,29 @@ test_names <- function(){
     names(mss) <- rev(1:12)
     checkEquals(names(mss), as.character(rev(1:12)))
 }
+
+test_phenoData <- function(){
+    ## Checking phenoData, assayData and pData.
+    mss <- MSslice()
+    checkEquals(unname(nrow(phenoData(mss))), 0)
+    checkTrue(is(pData(mss), "data.frame"))
+
+    checkException(phenoData(mss) <- pd)
+
+    mss <- globalMss
+    checkEquals(nrow(pData(mss)), length(assayData(mss)))
+
+    phenoData(mss) <- AnnotatedDataFrame(pd)
+    checkEquals(nrow(pData(mss)), length(assayData(mss)))
+
+    checkException(assayData(mss) <- list())
+
+    checkEquals(length(mss$class), length(assayData(mss)))
+
+    mss <- MSslice()
+    assayData(mss) <- list()
+}
+
 
 test_MSslice <- function(){
     ## Generate one from a simple subset.
@@ -50,14 +74,18 @@ test_bracketSubset <- function(){
     mss <- globalMss
     checkException(mss[3, 4])
     msss <- mss[c(1, 2, 5)]
-    checkEquals(length(msss@data), 3)
-    checkEquals(msss@data[[1]], mss@data[[1]])
-    checkEquals(msss@data[[3]], mss@data[[5]])
+
+    checkEquals(length(assayData(msss)), 3)
+    checkEquals(assayData(msss)[[1]], assayData(mss)[[1]])
+    checkEquals(assayData(msss)[[3]], assayData(mss)[[5]])
 
     ## Repeating several idxs...
     msss <- mss[c(1, 1, 1)]
-    checkEquals(msss@data[[1]], mss@data[[1]])
-    checkEquals(msss@data[[2]], mss@data[[1]])
+    checkEquals(assayData(msss)[[1]], assayData(mss)[[1]])
+    checkEquals(assayData(msss)[[2]], assayData(mss)[[1]])
+
+    ## What with the phenoData?
+    msss$class
 
     ## Subsetting by name.
     checkException(mss[c("first", "second")])
@@ -79,9 +107,9 @@ test_bracketSubset <- function(){
 
     ## OK, now something that works...
     msss <- mss[["ko16"]]
-    checkEquals(msss, mss@data[[2]])
+    checkEquals(msss, assayData(mss)[[2]])
     msss <- mss[[12]]
-    checkEquals(msss, mss@data[[12]])
+    checkEquals(msss, assayData(mss)[[12]])
 }
 
 ## test_plotChromatogram <- function(){

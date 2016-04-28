@@ -24,7 +24,7 @@ vignette: >
   %\VignetteIndexEntry{Extensions to the xcms package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  %\VignetteDepends{xcmsExtensions,xcms,faahKO}
+  %\VignetteDepends{xcmsExtensions,xcms,faahKO,limma}
   %\VignettePackage{xcmsExtensions}
   %\VignetteKeywords{MassSpectrometry, Metabolomics}
 bibliography: references.bib
@@ -251,7 +251,8 @@ that the matrix could also have less than 30 rows, e.g. if no values would be
 available for a bin.
 
 We next plot the chromatogram, first without binning and add the binned
-chromatogram to that plot.
+chromatogram to that plot. Especially for larger data sets (i.e. with more data
+points) binning provides a considerable speed-up to the plotting process.
 
 #+NAME: xcmsExtensions-chromatogram-plot
 #+BEGIN_SRC R :ravel fig.align='center', fig.width=7, fig.height=4, fig.cap="Extracted chromatogram for the data sub set. With (blue) and without (black) binning along the retention time axis."
@@ -1223,15 +1224,19 @@ Represents multiple =MSslice= objects. Each one defined by its own mz/rt region.
 + [ ] Vignette: /standard/ workflow with new methods.
 
 
-** TODO Subset MSslice objects =[]=.
+** DONE Subset MSslice objects =[]=.
+   CLOSED: [2016-04-28 Thu 07:15]
+   - State "DONE"       from "TODO"       [2016-04-28 Thu 07:15]
+** DONE Make =MSslice= extending some =Biobase= object to have pheno data implemented.
+   CLOSED: [2016-04-28 Thu 07:15]
+   - State "DONE"       from "TODO"       [2016-04-28 Thu 07:15]
+Extending =eSet= might be problematic; what about =pSet=?
 
-** TODO Make =MSslice= extending some =Biobase= object to have pheno data implemented.
-
-
-** TODO =mzmatch= include Fiehn lab stuff
-
-+ [ ] Include the M+- info from the Fiehn lab.
-+ [ ] Extend the =mzmatch= method to allow matches using +-.
+** DONE =mzmatch= include Fiehn lab stuff
+   CLOSED: [2016-04-28 Thu 07:15]
+   - State "DONE"       from "TODO"       [2016-04-28 Thu 07:15]
++ [X] Include the M+- info from the Fiehn lab.
++ [X] Extend the =mzmatch= method to allow matches using +-.
   The idea would be to generate multiple versions of the input values by
   subtracting/adding something, perform a search for each and return the result
   as a list.

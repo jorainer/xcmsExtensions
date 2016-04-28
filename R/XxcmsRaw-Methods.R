@@ -11,7 +11,7 @@ setMethod("msSlice", "xcmsRaw",
               ## We'll call the msData
               res <- msData(object, mzrange=mzrange, rtrange=rtrange, ...)
               if(is(res, "MSdata")){
-                  return(msSlice(res, call=call))
+                  return(msSlice(res))
               }else{
                   return(MSsliceList(lapply(res, MSslice)))
                   ## Got a list of objects, return a MSsliceList.

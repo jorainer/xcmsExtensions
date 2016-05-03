@@ -189,3 +189,38 @@ setMethod("initialize", "SimpleCompoundDb", function(.Object, ...){
         stop(OK)
     callNextMethod(.Object, ...)
 })
+
+
+####============================================================
+##  CompoundidFilter
+##
+####------------------------------------------------------------
+CompoundidFilter <- function(value, condition="="){
+    if(missing(value)){
+        stop("A filter without a value makes no sense!")
+    }
+    if(length(value) > 1){
+        if(condition=="=")
+            condition="in"
+        if(condition=="!=")
+            condition="not in"
+    }
+    return(new("CompoundidFilter", condition=condition, value=as.character(value)))
+}
+
+####============================================================
+##  MassrangeFilter
+##
+####------------------------------------------------------------
+MassrangeFilter <- function(value, condition="[]", column="mass"){
+    obj <- new("MassrangeFilter", value=value, condition=condition, column=column)
+    return(obj)
+}
+## setValidity("MassrangeFilter", .validateBasicrangeFilter)
+## setMethod("initialize", "MassrangeFilter", function(.Object, ...){
+##     OK <- .validateBasicrangeFilter(.Object)
+##     if(is(OK, "character"))
+##         stop(OK)
+##     return(.Object)
+##     ##callNextMethod(.Object, ...)
+## })

@@ -47,6 +47,50 @@ test_mzmatch_db <- function(){
     checkException(mzmatch(comps, scDb, ionAdduct="sdfdkjf"))
 }
 
+test_mzmatch_matrix <- function(){
+    ## Real life example: 5, 7, 9
+    mzs <- cbind(mzmed=c(324.1584, 327.1989, 329.2000),
+                 mzmin=c(324.1238, 327.1683, 329.1970),
+                 mzmax=c(324.1632, 327.2000, 329.2000))
+    ## Do the M+H search based on mzmed:
+    mzmedRes <- mzmatch(mzs[, "mzmed"], scDb, ppm=10, ionAdduct="M+H")
+    mzmedMat <- mzmatch(mzs[, c("mzmin", "mzmax")], scDb, ppm=10, ionAdduct="M+H")
+    ## We require that all compounds identified by mzmed are also found in the matrix version
+    checkTrue(all(do.call(rbind, mzmedRes)$idx %in% do.call(rbind, mzmedMat)$idx))
+
+    ## Check it
+    for(i in 1:3){
+        ## Now get the masses for the first...
+        cmps <- compounds(scDb, filter=CompoundidFilter(mzmedMat[[i]]$idx),
+                          columns="monoisotopic_molecular_weight")
+        ## Convert masses
+        massMin <- adductmz2mass(mzs[i, "mzmin"], ionAdduct="M+H")[[1]]
+        massMax <- adductmz2mass(mzs[i, "mzmax"], ionAdduct="M+H")[[1]]
+        ## Check if all the masses of the identified compounds are within that range.
+        massMin <- massMin - (massMin * 10/1000000)
+        massMax <- massMax + (massMax * 10/1000000)
+        checkTrue(all(cmps$monoisotopic_molecular_weight > massMin &
+                      cmps$monoisotopic_molecular_weight < massMax))
+    }
+
+    ## And now compare that the the matrix,numeric version.
+    compmasses <- compounds(scDb, columns=c("accession", "monoisotopic_molecular_weight"))
+    for(i in 1:3){
+        minmass <- adductmz2mass(mzs[i, "mzmin"], ionAdduct="M+H")[[1]]
+        maxmass <- adductmz2mass(mzs[i, "mzmax"], ionAdduct="M+H")[[1]]
+        massmat <- matrix(c(minmass, maxmass), nro=1)
+        SingleRes <- mzmatch(massmat, mz=compmasses$monoisotopic_molecular_weight, ppm=10)[[1]]
+        SingleRes <- data.frame(id=compmasses[SingleRes[, "idx"], "accession"], SingleRes,
+                                stringsAsFactors=FALSE)
+        dbRes <- mzmedMat[[i]]
+        dbRes <- dbRes[order(dbRes$deltaMz), ]
+        checkEquals(dbRes$idx, SingleRes$id)
+        ## Also the distance?
+        checkEquals(dbRes$deltaMz, SingleRes$deltaMz)
+    }
+}
+
+
 test_mzmatch_db_new <- function(){
     ## This uses now the ion adducts.
     realMz <- c(169.2870, 169.5650, 346.4605)
@@ -54,6 +98,13 @@ test_mzmatch_db_new <- function(){
     queryMz <- realMz - (floor(realMz) / 1000000) * 10
     comps <- c(300.1898, 298.1508, 491.2000, 169.13481, 169.1348, queryMz)
 
+    ###########
+    ## The "front-end" methods.
+    Res <- mzmatch(comps, scDb, ppm=10, ionAdduct="M+H")
+
+
+    ###########
+    ## The internal functions.
     Res <- xcmsExtensions:::.mzmatchCompoundDbSQL(comps, scDb)
 
     ## Test the new one.
@@ -211,4 +262,29 @@ test_getWhat <- function(){
     checkEquals(colnames(res), c("accession", "name", "inchi"))
     res <- xcmsExtensions:::getWhat(scDb, filter=cf, columns=c("name", "inchi"), return.all.columns=FALSE)
     checkEquals(colnames(res), c("name", "inchi"))
+}
+
+test_compounds_MassrangeFilter <- function(){
+    mrf <- MassrangeFilter(c(300, 310))
+    cmps <- compounds(scDb, filter=mrf, columns=c("accession", "avg_molecular_weight",
+                                                  "monoisotopic_molecular_weight"))
+    checkTrue(all(cmps$monoisotopic_molecular_weight >= 300 &
+                  cmps$monoisotopic_molecular_weight <= 310))
+    condition(mrf) <- "()"
+    cmps <- compounds(scDb, filter=mrf, columns=c("accession", "avg_molecular_weight",
+                                                  "monoisotopic_molecular_weight"))
+    checkTrue(all(cmps$monoisotopic_molecular_weight > 300 &
+                  cmps$monoisotopic_molecular_weight < 310))
+    ## Changing the column to avg
+    ## mrf@column <- "avg_molecular_weight"
+
+    ## Combine filters.
+    cmps <- compounds(scDb, filter=list(mrf, CompoundidFilter("HMDB60116")),
+                      columns=c("accession", "avg_molecular_weight",
+                                "monoisotopic_molecular_weight"))
+    value(mrf) <- c(304, 310)
+    cmps <- compounds(scDb, filter=list(mrf, CompoundidFilter("HMDB60116")),
+                      columns=c("accession", "avg_molecular_weight",
+                                "monoisotopic_molecular_weight"))
+    checkTrue(nrow(cmps)==0)
 }

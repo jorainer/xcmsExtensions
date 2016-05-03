@@ -381,6 +381,132 @@ objects. For both methods, the `mzrange` or `rtrange` across all samples is
 first cut into intervals and the binning is then performed, for each sample
 separately, but using the same bins.
 
+# Simple compound database
+
+The `xcmsExtensions` package provides also a very simple metabolic compounds
+database (a `SimpleCompoundDb`) that contains presently some of the data from
+the Human metabolome database (HMDB [@Wishart:2013is]). This database, which
+is by default bound to the variable `scDb`, can be easily queried and also used
+for a simple compound identification (see next section). Records can be
+retrieved from the database using the `compounds` method, which allows also
+filter the results in a similar fashion than e.g. `EnsDb` databases from
+Bioconductor's `ensembldb` package. The individual filter objects are listed
+below:
+
+-   `CompoundidFilter`: allows to fetch specific compounds from the database
+    providing their ID. This filter allows single or multiple IDs and queries the
+    database column `accession`.
+
+-   `MassrangeFilter`: allows to fetch specific compounds from the database with a
+    mass (either in column `monoisotopic_molecular_weight` or
+    `avg_molecular_weight`) within the mass range specified in the filter. The
+    object requires the mass range to be specified as a numeric vector of
+    length 2.
+
+Below we first inspect some database properties and subsequently fetch all the
+compounds from the database.
+
+```{r }
+## First list some information from the database
+scDb
+
+## List all columns that are available in the database.
+columns(scDb)
+
+## Fetch all compounds from the database.
+cmps <- compounds(scDb)
+nrow(cmps)
+```
+
+Next we specify a `MassrangeFilter` and fetch all compounds with a mass larger
+than 300 and smaller than or equal to 310 from the database.
+
+```{r }
+## Define the filter for masses > 300 and <= 310
+mrf <- MassrangeFilter(value=c(300, 310), condition="(]")
+
+## Fetch the ID, the monoisotopic molecular weight and the chemical formula
+## for these compounds
+cmps <- compounds(scDb, filter=mrf, columns=c("monoisotopic_molecular_weight",
+					      "accession", "chem_formula"))
+nrow(cmps)
+head(cmps)
+```
+
+Alternatively (or in addition) we can also specify a `CompoundidFilter` to fetch
+specific compounds from the database.
+
+```{r }
+## Create a filter for some IDs
+idf <- CompoundidFilter(value=c("HMDB00523", "HMDB00010"))
+
+## Filters can be compbined, in which case retrieved values have to match
+## all conditions.
+cmps <- compounds(scDb, filter=list(mrf, idf), columns=c("monoisotopic_molecular_weight",
+							 "chem_formula", "accession"))
+cmps
+```
+
+Note that entries are not in the same order than e.g. the IDs in the provided
+filter. The ordering of the result can be specified with the `order.by`
+parameter. By default, results are ordered by ID.
+
+```{r }
+## Fetch the result ordered by monoisotopic_molecular_weight
+compounds(scDb, filter=idf, columns=c("accession", "chem_formula",
+				      "monoisotopic_molecular_weight"),
+	  order.by="monoisotopic_molecular_weight")
+```
+
+# ESI MS adducts mass conversion
+
+Conversion between M/Z values from an MS measurement and the mass of the compound can
+be performed with the `adductmz2mass` and `mass2adductmz` methods. These base on the
+data from the Fiehn lab for the most commonly observed ion adducts in ESI
+experiments [@Huang:1999gb] to perform the calculation, i.e. assuming the
+M/Z value corresponds derives from a certain ion adduct of the real compound, it
+calculates its mass. By default, both methods assume that the measured compound
+is an ion and thus do just return the value *as is*. An ion adduct name, or several
+ion adduct names, can be provided to the method with the `ionAdduct`
+argument. All supported ion adduct names can be listed with the
+`supportedIonAdducts()` function.
+
+Below we first list all supported ion adducts and convert then an (artificial
+M/Z) to the mass of the compound, assuming that the `M+H` ion adduct was
+measured.
+
+```{r }
+## List all supported ion adducts.
+supportedIonAdducts()
+
+## Convert the given M/Z to the mass of the compound, assuming that the
+## M+H was measured.
+adductmz2mass(300.1, ionAdduct="M+H")
+```
+
+The method returns a list, with the list name specifying the ion adduct. Below
+we convert the M/Z to the mass of all supported negative ion adducts.
+
+```{r }
+## Convert the M/Z to the mass of all possible negative ion adducts.
+adductmz2mass(300.1, ionAdduct=supportedIonAdducts(charge="neg"))
+```
+
+We can also calculate the M/Z values of all possible ion adducts of a compound
+that we fetch from the database.
+
+```{r }
+## Fetch the mass from a compound from the database.
+cmp <- compounds(scDb, filter=CompoundidFilter("HMDB00010"),
+		 columns=c("accession", "name", "monoisotopic_molecular_weight"))
+
+## Calculate the M/Z for the ion adduct M+H for this compound.
+mass2adductmz(cmp$monoisotopic_molecular_weight, ionAdduct="M+H")
+
+## And finally of all possible (supported) adducts
+mass2adductmz(cmp$monoisotopic_molecular_weight, ionAdduct=supportedIonAdducts())
+```
+
 # Simple peak/compound identification
 
 One of the major problems in the metabolomics data analysis workflow is the
@@ -451,15 +577,16 @@ example above we assumed that the measured compound is already and ion, thus an
 `M` is listed).
 
 In a *real world* scenario, the measured M/Z value will correspond to that of an
-ion adduct of the *real* metabolite. The `xcmsExtensions` package has the data
+ion adduct of the *real* metabolite. The `xcmsExtensions` package integrates the data
 from the *ESI MS adducts* calculator from the Fiehn lab [@Huang:1999gb]
-integrated and uses this data to convert between M/Z values and masses for all
+and uses this to convert between M/Z values and masses for all
 or some of the most commonly found ion adducts. The methods `adductmz2mass` and
 `mass2adductmz` allow to convert between M/Z and mass values of supported ion
-adducts (which can be listed using the `supportedIonAdducts` method).
+adducts (which can be listed using the `supportedIonAdducts()` method).
 
 To calculate the mass of the measured compounds, assuming that the `M+H` ion
-adduct was measured we can use the `adductmz2mass` method as shown below.
+of the metabolite was measured we, can use the `adductmz2mass` method as shown
+below.
 
 ```{r }
 ## Calculate the mass assuming the M+H ion was measured.
@@ -471,7 +598,7 @@ adductmz2mass(comps, ionAdduct=supportedIonAdducts(charge="neg"))
 
 If ion adduct name(s) are provided to the `mzmatch` method with the `ionAdduct`
 argument, the method internally compares all masses for all ion adducts with the
-database.
+database and returns matching results.
 
 ```{r }
 ## Match the M/Z, assuming it to correspond to a positive ion adduct, with all
@@ -488,9 +615,15 @@ Res <- lapply(Res, function(z){
 Res[1:2]
 ```
 
-In the code chunk below we're defining an
-`CompoundidFilter` for the identified compounds of the 4th mass and return its
-name and inchi key from the database.
+In addition (as shown in the next section) it is possible to perform the peak
+identification using the measured peak range in M/Z direction (i.e. the `mzmin`
+and `mzmax` value of the peak). Also, it would be to some extend possible to
+perform the compound identification using a `MassrangeFilter` and the
+`compounds` method, but in that case ppm and the mass of the assumed ion adduct
+would have to be calculated beforehand.
+
+In the code chunk below we're defining an `CompoundidFilter` for the identified
+compounds of the 4th mass and return its name and inchi key from the database.
 
 ```{r }
 ## Define CompoundidFilter for the matches of the selected mass
@@ -502,9 +635,6 @@ cmps
 ```
 
 # Using `xcmsExtensions` for an updated `xcms` data analysis workflow
-
-TODO: use the workflow in `xcms` but use as much as possible the stuff from the
-`xcmsExtensions`.
 
 In this section we perform the analysis of the `faahKO` data set described in
 the `xcms` package vignette *LC/MS Preprocessing and Analysis with xcms*.
@@ -767,7 +897,11 @@ mtext(side=4, line=4.2, text="% FDR", cex=par("cex.lab"))
 
 We next select the peaks with a significant difference in abundance (more than
 two-fold different at a 5 percent FDR) and perform a simple compound
-identification for these, based on their M/Z value.
+identification for these, based on their M/Z value. In the default setting the
+`mzmatch` method searches for masses being equal or highly similar to the actual
+M/Z value, thus assuming the compound being an ion. Alternatively, we can also
+specify a specific ion adduct, if we assume that the signal was generated by a
+certain ion adduct from the metabolite (e.g. *M+H* for the metabolite + an H).
 
 ```{r }
 ## Select significant peaks
@@ -804,6 +938,28 @@ resTable <- data.frame(do.call(rbind, comps),
 ## Order the table by significance
 resTable <- resTable[order(resTable$rawp), ]
 ```
+
+In the next code block we perform the peak identification assuming that the
+signal was generated by M+H ion adducts by providing the `ionAdduct`
+parameter. For a list of supported (most frequent) ion adducts use the
+`supportedIonAdducts` method. Note also that more than one ion adduct can be
+specified. In addition it is possible to search for compounds based on the range
+of the peak in M/Z direction, i.e. the database is searched for masses
+within the mass range corresponding to the M/Z range/peak width (+- the
+specified ppm). In the example below we submit the `mzmin` and `mzmax` of the
+peaks, which are then converted to a min and max mass, assuming the signal
+derives from an M+H ion adduct. Compounds with a (monoisotopic mass) within the
+range spanned by min mass (-ppm of that mass) and max mass (+ppm of that mass)
+are then returned.
+
+```{r }
+## Performing the search assuming the signal derives from M+H ion adducts.
+compsH <- mzmatch(as.matrix(resTable[, c("mzmin", "mzmax")]), mz=scDb,
+		  ppm=10, ionAdduct="M+H")
+```
+
+This resulted in far more matches then the search based on the median mz of the
+peak.
 
 The top 6 most significant peaks are shown below; none of them was identified by
 their M/Z value.

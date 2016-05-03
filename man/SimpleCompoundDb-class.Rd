@@ -237,9 +237,10 @@ SimpleCompoundDb(x)
       to the corresponding mass and compounds in the database are
       searched with a mass within the such defined mass range which is
       extended by the specified ppm. In that case, the reported
-      \code{"deltaMz"} in the result table is also the smallest distance
-      of the compound mass to the mass of the peak (i.e. to the minimal
-      and maximal mass for the \code{minmz} and \code{maxmz}).
+      \code{"deltaMz"} in the result table is the distance
+      of the compound mass to the mean mass of the peak (i.e. to the
+      mean of the minimal and maximal mass for the \code{minmz} and
+      \code{maxmz}).
 
       Like the
       generic \code{\link{mzmatch}} method, this method returns a

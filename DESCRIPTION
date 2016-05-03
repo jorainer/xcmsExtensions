@@ -1,7 +1,7 @@
 Package: xcmsExtensions
 Type: Package
 Title: Extensions to the xcms package
-Version: 0.0.9
+Version: 0.0.10
 Author: J. Rainer
 Maintainer: Johannes Rainer <johannes.rainer@eurac.edu>
 Imports: BiocGenerics, utils, ProtGenerics, S4Vectors, BiocParallel, Matrix, XML,

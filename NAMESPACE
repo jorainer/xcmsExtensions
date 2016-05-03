@@ -51,7 +51,7 @@ importFrom("graphics", "points")
 
 ## Classes
 exportClasses("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb",
-              "CompoundidFilter")
+              "CompoundidFilter", "MassrangeFilter")
 
 ## xcmsSet methods
 exportMethods("peakGroupSummary")
@@ -83,7 +83,8 @@ exportMethods("show", "msSlice", "msData", "as.matrix", "length", "grow", "mzmat
               "supportedIonAdducts", "mass2adductmz", "adductmz2mass")
 
 ## Constructors
-export("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb", "CompoundidFilter")
+export("MSdata", "MSslice", "MSsliceList", "SimpleCompoundDb", "CompoundidFilter",
+       "MassrangeFilter")
 
 ## Shiny app
 export("visualizeXcmsSet")

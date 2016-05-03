@@ -109,15 +109,79 @@ setClass("CompoundidFilter", contains="BasicFilter",
              .valueIsCharacter=TRUE
             )
         )
-CompoundidFilter <- function(value, condition="="){
-    if(missing(value)){
-        stop("A filter without a value makes no sense!")
-    }
-    if(length(value) > 1){
-        if(condition=="=")
-            condition="in"
-        if(condition=="!=")
-            condition="not in"
-    }
-    return(new("CompoundidFilter", condition=condition, value=as.character(value)))
+
+####============================================================
+##  BasicrangeFilter
+##
+##  That's a generic range filter. Just important that the validity method
+##  checks a) that value is numeric, b) that condition is () (] [] [) and
+##  c) that value has length 2.
+.validBasicrangeFilter <- function(object){
+    vals <- object@value
+    if(length(vals) != 2)
+        return(paste0("Length of 'value' has to be 2!"))
+    suppressWarnings(
+        vals <- as.numeric(vals)
+    )
+    if(any(is.na(vals)))
+        return(paste0("'value' should only contain numeric values!"))
+    ## Check condition.
+    if(!(object@condition %in% c("()", "[)", "[]", "(]")))
+        return(paste0("'condition' can only take values '()', '(]', '[]' or '[)'."))
+    return(TRUE)
 }
+setClass("BasicrangeFilter", contains="BasicFilter",
+         prototype=list(
+             condition="[]",
+             value=c("-Inf", "Inf"),
+             .valueIsCharacter=FALSE
+         ),
+         validity=.validBasicrangeFilter
+         )
+##  initialize method.
+## We're overwriting the method to avoid calling the initialize method of the BasicFilter,
+## that wouldn't allow the conditions we need here. Thus we're NOT calling the
+## callNextMethod as we would usually do to fill in all slots, but have to do this
+## manually here. All classes extending this class do then also call this method.
+setMethod("initialize", "BasicrangeFilter", function(.Object, value, condition){
+    ## .Object <- callNextMethod()  ## Can not call that as it would call the validate of
+    ## BasicFilter.
+    if(!missing(value))
+        .Object@value <- as.character(value)
+    if(!missing(condition))
+        .Object@condition <- as.character(condition)
+    OK <- .validBasicrangeFilter(.Object)
+    if(is(OK, "character"))
+        stop(OK)
+    ## Oh, man, doing the initialization here; otherwise I would have to update
+    ## the ensembldb implementation!
+    return(.Object)
+    ##callNextMethod(.Object, ...)
+})
+
+
+####============================================================
+##  MassrangeFilter
+##
+##  Extend BasicrangeFilter, adding also a slot column and over-
+##  writing the corresponding methods.
+##  The validity method we're using here ensures that the superclass is OK;
+##  we can't call validObject, since that starts with the BasicFilter!
+####------------------------------------------------------------
+.validMassrangeFilter <- function(object){
+    ## Call the method from the BasicrangeFilter
+    return(getValidity(getClassDef("BasicrangeFilter"))(object))
+}
+setClass("MassrangeFilter", contains="BasicrangeFilter",
+         representation(column="character"),
+         prototype=list(
+             column="mass"
+         ),
+         validity=.validMassrangeFilter)
+setMethod("initialize", "MassrangeFilter", function(.Object, value, condition,
+                                                    column){
+    .Object <- callNextMethod(.Object, value, condition)
+    if(!missing(column))
+        .Object@column <- column
+    return(.Object)
+})

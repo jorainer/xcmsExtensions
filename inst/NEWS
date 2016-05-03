@@ -1,3 +1,11 @@
+CHANGES IN VERSION 0.0.10
+------------------------
+
+NEW FEATURES
+    o MassrangeFilter implemented.
+    o Added a section about the SimpleCompoundDb to the vignette.
+
+
 CHANGES IN VERSION 0.0.9
 ------------------------
 
